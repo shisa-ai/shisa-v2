@@ -21,7 +21,7 @@ PROMPT = models[model]['prompt']
 FORMAT = models[model]['format']
 
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL, trust_remote_code=True, use_fast=True)
+tokenizer = AutoTokenizer.from_pretrained('final_checkpoint', trust_remote_code=True, use_fast=True)
 
 # We shouldn't quantize the mamba layers...
 quantization_config = BitsAndBytesConfig(load_in_8bit=True,
@@ -40,7 +40,7 @@ model = AutoModelForCausalLM.from_pretrained(
 # Load adapter
 # https://github.com/SYSTEMS-OPERATOR/T.T.M.A.T.G.R.A.L.R.W.R.P/blob/61b64e94fe748f751890f15a4e1f0b3122450a3c/LRWRP/bf16-lora-merge.py#L6
 from safetensors import safe_open
-checkpoint_dir = "outputs/checkpoint-500"
+checkpoint_dir = "final_checkpoint"
 adapter_path = checkpoint_dir + "/adapter_model.safetensors"
 
 def load_lora_adjustments(lora_path):
@@ -166,14 +166,13 @@ def chat_with_model():
             try:
                 outputs = model.generate(
                     inputs,
-                    pad_token_id=tokenizer.eos_token_id,
                     max_new_tokens=maxt,
                     temperature=temp,
                     repetition_penalty=rep,
                     top_p=top_p,
                     do_sample=True,
                     eos_token_id=tokenizer.eos_token_id,
-                    pad_token_id=tokenizer.eos_token_id,
+                    pad_token_id=tokenizer.pad_token_id,
                     streamer=streamer
                 )
             except KeyboardInterrupt:
