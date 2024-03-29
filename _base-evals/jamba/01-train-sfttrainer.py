@@ -22,16 +22,17 @@ quantization_config = BitsAndBytesConfig(
 )
 
 model = AutoModelForCausalLM.from_pretrained(
-    "ai21labs/Jamba-v0.1",
+    "jamba",
     trust_remote_code=True,
     torch_dtype=torch.cuda.is_bf16_supported() and torch.bfloat16 or torch.float16,
+    low_cpu_mem_usage=True,
     attn_implementation="flash_attention_2",
     quantization_config=quantization_config
 )
 # Extra bits: https://github.com/mlabonne/llm-course/blob/4dc551d702a28b94bdec8cade19110c5ed93a740/Fine_tune_a_Mistral_7b_model_with_DPO.ipynb#L471
 model.config.use_cache = False
 
-tokenizer = AutoTokenizer.from_pretrained("ai21labs/Jamba-v0.1")
+tokenizer = AutoTokenizer.from_pretrained("jamba")
 # padding_side : "left"
 # pad_token    : '<|pad|>'
 # bos_token    : '<|startoftext|>'
@@ -40,6 +41,9 @@ tokenizer = AutoTokenizer.from_pretrained("ai21labs/Jamba-v0.1")
 # bos_token_id : 1
 # eos_token_id : 2
 
+# bitsandbytes causes potential overflows w/ padding_side = 'left'?
+# UserWarning: You passed a tokenizer with `padding_side` not equal to `right` to the SFTTrainer. This might lead to some unexpected behaviour due to overflow issues when training a model in half-precision. You might consider adding `tokenizer.padding_side = 'right'` to your code.
+tokenizer.padding_side = 'right'
 
 # No Chat Template, so we assign chatml
 tokenizer.chat_template = "{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
@@ -86,7 +90,7 @@ trainer = SFTTrainer(
     packing=True,
     args = TrainingArguments(
         num_train_epochs=3,
-        learning_rate=2e-4,
+        learning_rate=5e-4,
         per_device_train_batch_size = 1,
         gradient_accumulation_steps = 4,
         warmup_steps = 10,
