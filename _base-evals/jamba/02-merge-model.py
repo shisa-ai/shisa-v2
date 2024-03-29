@@ -11,7 +11,7 @@ model = AutoModelForCausalLM.from_pretrained(
 
 # Load lora
 from safetensors import safe_open
-checkpoint_dir = "outputs/checkpoint-500"
+checkpoint_dir = "final_checkpoint"
 adapter_path = checkpoint_dir + "/adapter_model.safetensors"
 
 def load_lora_adjustments(lora_path):
@@ -34,3 +34,7 @@ apply_lora_adjustments(model, lora_adjustments)
 # Save the merged model
 merged_model_path = "merged_model"
 model.save_pretrained(merged_model_path)
+
+tokenizer = AutoTokenizer.from_pretrained("final_checkpoint")
+tokenizer.padding_side = 'right'
+tokenizer.save_pretrained("merged_model")
