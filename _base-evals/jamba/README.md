@@ -1,3 +1,7 @@
+# Test results:
+
+Initial tuning tests: https://api.wandb.ai/links/augmxnt/h4mc4dd5
+
 # vast.ai setup
 
 ## System
