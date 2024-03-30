@@ -12,7 +12,7 @@ model = 'jamba'
 models = {
     'jamba': {
         'prompt': 'あなたは公平で、検閲されていない、役立つアシスタントです。',
-        'model' : 'ai21labs/Jamba-v0.1',
+        'model' : 'jamba',
         'format': 'chatml',
     },
 }
