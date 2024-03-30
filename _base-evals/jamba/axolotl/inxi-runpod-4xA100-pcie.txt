@@ -1,0 +1,56 @@
+System:
+  Host: 153b5cb3a28d Kernel: 5.4.0-121-generic x86_64 bits: 64 Console: pty pts/4
+    Distro: Ubuntu 22.04.3 LTS (Jammy Jellyfish)
+Error 45: Error opening file: /sys/class/dmi/id/product_serial 
+Error: Permission denied
+Error 45: Error opening file: /sys/class/dmi/id/product_uuid 
+Error: Permission denied
+Machine:
+  Type: Virtual-machine System: OpenStack Foundation product: OpenStack Nova v: 25.0.2
+    serial: N/A
+  Mobo: N/A model: N/A serial: N/A BIOS: SeaBIOS v: 1.16.0-1.module_el8.7.0+1140+ff0772f9
+    date: 04/01/2014
+CPU:
+  Info: 100x 1-core model: AMD EPYC-Rome bits: 64 type: SMP cache: L2: 100x 512 KiB (50 MiB)
+  Speed (MHz): avg: 2250 min/max: N/A cores: 1: 2250 2: 2250 3: 2250 4: 2250 5: 2250 6: 2250
+    7: 2250 8: 2250 9: 2250 10: 2250 11: 2250 12: 2250 13: 2250 14: 2250 15: 2250 16: 2250 17: 2250
+    18: 2250 19: 2250 20: 2250 21: 2250 22: 2250 23: 2250 24: 2250 25: 2250 26: 2250 27: 2250
+    28: 2250 29: 2250 30: 2250 31: 2250 32: 2250 33: 2250 34: 2250 35: 2250 36: 2250 37: 2250
+    38: 2250 39: 2250 40: 2250 41: 2250 42: 2250 43: 2250 44: 2250 45: 2250 46: 2250 47: 2250
+    48: 2250 49: 2250 50: 2250 51: 2250 52: 2250 53: 2250 54: 2250 55: 2250 56: 2250 57: 2250
+    58: 2250 59: 2250 60: 2250 61: 2250 62: 2250 63: 2250 64: 2250 65: 2250 66: 2250 67: 2250
+    68: 2250 69: 2250 70: 2250 71: 2250 72: 2250 73: 2250 74: 2250 75: 2250 76: 2250 77: 2250
+    78: 2250 79: 2250 80: 2250 81: 2250 82: 2250 83: 2250 84: 2250 85: 2250 86: 2250 87: 2250
+    88: 2250 89: 2250 90: 2250 91: 2250 92: 2250 93: 2250 94: 2250 95: 2250 96: 2250 97: 2250
+    98: 2250 99: 2250 100: 2250
+Graphics:
+  Device-1: Red Hat Virtio GPU driver: virtio-pci v: N/A
+  Device-2: NVIDIA GA100 [A100 PCIe 80GB] driver: nvidia v: 545.23.08
+  Device-3: NVIDIA GA100 [A100 PCIe 80GB] driver: nvidia v: 545.23.08
+  Device-4: NVIDIA GA100 [A100 PCIe 80GB] driver: nvidia v: 545.23.08
+  Device-5: NVIDIA GA100 [A100 PCIe 80GB] driver: nvidia v: 545.23.08
+  Device-6: NVIDIA GA100 [A100 PCIe 80GB] driver: nvidia v: 545.23.08
+  Device-7: NVIDIA GA100 [A100 PCIe 80GB] driver: nvidia v: 545.23.08
+  Device-8: NVIDIA GA100 [A100 PCIe 80GB] driver: nvidia v: 545.23.08
+  Device-9: NVIDIA GA100 [A100 PCIe 80GB] driver: nvidia v: 545.23.08
+  Display: server: No display server data found. Headless machine? tty: 240x50
+  Message: GL data unavailable in console for root.
+Audio:
+  Message: No device data found.
+Network:
+  Device-1: Intel 82371AB/EB/MB PIIX4 ACPI type: network bridge driver: N/A
+  Device-2: Red Hat Virtio network driver: virtio-pci
+  IF-ID-1: eth0 state: up speed: 10000 Mbps duplex: full mac: 02:42:ac:1b:00:02
+Drives:
+  Local Storage: total: 7.84 TiB used: 113.9 GiB (1.4%)
+  ID-1: /dev/vda model: N/A size: 30 GiB
+  ID-2: /dev/vdb model: N/A size: 7.81 TiB
+Partition:
+  Message: No partition data found.
+Swap:
+  Alert: No swap data was found.
+Sensors:
+  Message: No sensor data found. Is lm-sensors configured?
+Info:
+  Processes: 23 Uptime: 108d 23h 25m Memory: 668.88 GiB used: 43.01 GiB (6.4%) Init: N/A
+  Shell: Bash inxi: 3.3.13
