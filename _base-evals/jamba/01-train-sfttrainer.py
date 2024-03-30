@@ -68,7 +68,8 @@ def convert_to_chatml_format(conversation):
 
 # See https://github.com/rodrigo-pedro/gemma-function-calling/blob/fe6416ea8de2150e2f58a8e329bf1a91935bbaf0/finetune.ipynb#L56
 # https://colab.research.google.com/drive/1Aau3lgPzeZKQ-98h69CCu1UJcvIBLmy2?usp=sharing
-dataset = load_dataset("NTQAI/sharegpt-clean-ja", split="train")
+# dataset = load_dataset("NTQAI/sharegpt-clean-ja", split="train")
+dataset = load_dataset("augmxnt/ultra-orca-boros-en-ja-v1", split="train")
 dataset = dataset.map(lambda x: convert_to_chatml_format(x["conversations"]))
 print(dataset)
 
