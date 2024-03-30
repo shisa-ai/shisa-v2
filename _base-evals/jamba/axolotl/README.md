@@ -7,10 +7,15 @@ We start with [Peter Devine's](https://huggingface.co/ptrdvn) WandB writeup whic
 
 Instead of vast.ai, we use RunPod Community Cloud since for 4x80 cards, vast.ai only has H100s available, and it's a bit spendy.
 
-We are able to get a RunPod of 4xA100-80 (300W PCIe) for $6.36/h.
+We are able to get a RunPod Community Cloud of 4xA100-80 (300W PCIe) for $6.36/hr in NL on fast internet.
 * About 30 minutes to get up and running
 * About 31h for 3 epochs of training
-* At 32h, $203.52
+* At 32h, $204
+
+A RunPod Secure Cloud 4xA100-80 (500W SXM) for $9.16/hr (US, very fast internet). This is about 44% more expensive, so the question will be if we can train that much faster.
+* Using this checkout, we were able to get setup in 5-10 minutes and training in <10min
+* About 26.5h for 3 epochs of training (only 17% faster, would need 21.5h for cost breakeven)
+* At 27h, $247
 
 Run @ https://wandb.ai/augmxnt/shisa-v2/runs/o830e1kw
 
@@ -26,6 +31,7 @@ apt update
 apt install byobu -y
 apt install neovim -y
 apt install btop htop nvtop -y
+apt install inxi -y
 ```
 
 ## Byobu
@@ -34,19 +40,19 @@ By default the docker image autoloads tmux on login. Let's switch up the `.bashr
 [[ -z "$BYOBU_RUN_DIR" ]] && { byobu attach-session -t ssh_byobu || byobu new-session -s ssh_byobu; exit; }
 ```
 
-## HF
+# Env
 ```
+git config --global user.email 'lhl@randomfoo.net'
+git config --global user.name 'lhl'
+
 pip install huggingface_hub
 git config --global credential.helper store
 huggingface-cli login
 
 # huggingface-cli download ai21labs/Jamba-v0.1
-```
 
-## WandB
-```
 Setup install wandb
-wandb loginp
+wandb login
 ```
 
 ## Train
