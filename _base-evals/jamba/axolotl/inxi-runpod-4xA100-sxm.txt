@@ -1,0 +1,66 @@
+System:
+  Host: f8bbbff228cd Kernel: 5.15.0-91-generic x86_64 bits: 64 Console: pty pts/4
+    Distro: Ubuntu 22.04.3 LTS (Jammy Jellyfish)
+Error 45: Error opening file: /sys/class/dmi/id/board_serial 
+Error: Permission denied
+Error 45: Error opening file: /sys/class/dmi/id/product_serial 
+Error: Permission denied
+Error 45: Error opening file: /sys/class/dmi/id/product_uuid 
+Error: Permission denied
+Machine:
+  Type: Kvm System: Supermicro product: AS -2124GQ-NART+ v: 0123456789 serial: N/A
+  Mobo: Supermicro model: H12DSG-Q-CPU6 v: 1.01 serial: N/A BIOS: American Megatrends LLC.
+    v: 2.5b date: 04/21/2023
+CPU:
+  Info: 2x 32-core model: AMD EPYC 7513 bits: 64 type: MT MCP SMP cache: L2: 2x 16 MiB (32 MiB)
+  Speed (MHz): avg: 1711 min/max: 1500/3682 cores: 1: 3667 2: 1500 3: 1500 4: 1500 5: 1500
+    6: 1500 7: 1500 8: 1500 9: 1500 10: 1500 11: 1500 12: 1500 13: 1500 14: 1500 15: 1500 16: 1500
+    17: 1500 18: 1500 19: 1500 20: 1500 21: 1500 22: 1500 23: 1500 24: 1500 25: 1500 26: 1500
+    27: 1500 28: 1500 29: 1500 30: 1500 31: 1500 32: 1500 33: 2600 34: 1500 35: 1500 36: 1500
+    37: 1500 38: 2600 39: 2600 40: 1500 41: 2600 42: 1500 43: 1500 44: 1500 45: 1500 46: 1500
+    47: 1500 48: 3623 49: 1500 50: 1500 51: 1500 52: 1500 53: 1500 54: 3623 55: 2600 56: 1500
+    57: 2000 58: 2600 59: 1500 60: 1500 61: 1500 62: 1500 63: 1500 64: 3624 65: 3668 66: 1500
+    67: 1500 68: 1500 69: 1500 70: 1500 71: 1500 72: 1500 73: 1500 74: 1500 75: 1500 76: 1500
+    77: 1500 78: 1500 79: 2617 80: 1500 81: 1500 82: 1500 83: 1500 84: 1500 85: 1500 86: 1500
+    87: 2600 88: 1500 89: 1500 90: 1500 91: 1500 92: 1500 93: 1500 94: 1500 95: 1500 96: 1500
+    97: 1500 98: 2600 99: 1500 100: 2000 101: 2600 102: 1500 103: 1500 104: 2600 105: 1500
+    106: 1500 107: 1500 108: 1500 109: 1500 110: 1500 111: 1500 112: 1500 113: 1500 114: 1500
+    115: 1500 116: 2600 117: 2600 118: 1500 119: 1500 120: 1500 121: 1500 122: 1500 123: 1500
+    124: 2600 125: 1500 126: 1500 127: 1500 128: 1500
+Graphics:
+  Device-1: NVIDIA GA100 [A100 SXM4 80GB] driver: nvidia v: 535.129.03
+  Device-2: NVIDIA GA100 [A100 SXM4 80GB] driver: nvidia v: 535.129.03
+  Device-3: ASPEED Graphics Family driver: ast v: kernel
+  Device-4: NVIDIA GA100 [A100 SXM4 80GB] driver: nvidia v: 535.129.03
+  Device-5: NVIDIA GA100 [A100 SXM4 80GB] driver: nvidia v: 535.129.03
+  Display: server: No display server data found. Headless machine? tty: 212x63
+  Message: GL data unavailable in console for root.
+Audio:
+  Message: No device data found.
+Network:
+  Device-1: Intel Ethernet X710 for 10GBASE-T driver: i40e
+  Device-2: Intel Ethernet X710 for 10GBASE-T driver: i40e
+  Device-3: Intel Ethernet XXV710 for 25GbE SFP28 driver: i40e
+  Device-4: Intel Ethernet XXV710 for 25GbE SFP28 driver: i40e
+  IF-ID-1: bonding_masters state: N/A speed: N/A duplex: N/A mac: N/A
+  IF-ID-2: eth0 state: up speed: 10000 Mbps duplex: full mac: 02:42:c0:a8:10:02
+Bluetooth:
+  Device-1: Linux 5.4.62 with aspeed_vhub RNDIS/Ethernet Gadget type: USB driver: rndis_host
+  Report: This feature requires one of these tools: hciconfig/bt-adapter
+RAID:
+  Device-1: md127 type: mdraid level: raid-0 status: active size: 6.99 TiB report: N/A
+  Components: Online: 0: nvme1n1 1: nvme2n1
+Drives:
+  Local Storage: total: raw: 8.73 TiB usable: 8.73 TiB used: 125.23 GiB (1.4%)
+  ID-1: /dev/nvme0n1 vendor: Samsung model: MZQL21T9HCJR-00A07 size: 1.75 TiB
+  ID-2: /dev/nvme1n1 vendor: Samsung model: MZQL23T8HCLS-00A07 size: 3.49 TiB
+  ID-3: /dev/nvme2n1 vendor: Samsung model: MZQL23T8HCLS-00A07 size: 3.49 TiB
+Partition:
+  Message: No partition data found.
+Swap:
+  Alert: No swap data was found.
+Sensors:
+  Message: No sensor data found. Is lm-sensors configured?
+Info:
+  Processes: 24 Uptime: 90d 15h 24m Memory: 1007.72 GiB used: 33.05 GiB (3.3%) Init: N/A
+  Shell: Bash inxi: 3.3.13
