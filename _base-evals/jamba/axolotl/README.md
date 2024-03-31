@@ -37,8 +37,9 @@ apt install inxi -y
 ## Byobu
 By default the docker image autoloads tmux on login. Let's switch up the `.bashrc`
 ```
-[[ -z "$BYOBU_RUN_DIR" ]] && { byobu attach-session -t ssh_byobu || byobu new-session -s ssh_byobu; exit; }
+sed -i 's/\[\[ -z "\$TMUX"  \]\] && { tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux; exit; }/\[\[ -z "\$BYOBU_RUN_DIR" \]\] \&\& { byobu attach-session -t ssh_byobu || byobu new-session -s ssh_byobu; exit; }/' ~/.bashrc
 ```
+Relogin to switch to byobu
 
 # Env Setup
 ```
@@ -54,6 +55,8 @@ huggingface-cli login
 Setup install wandb
 wandb login
 ```
+* HF Tokens: https://huggingface.co/settings/tokens
+* WandB Tokens: https://wandb.ai/settings (Danger Zone section)
 
 ## Train
 ```
