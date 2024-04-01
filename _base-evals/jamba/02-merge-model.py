@@ -1,4 +1,4 @@
-
+from peft import AutoPeftModelForCausalLM
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
@@ -10,26 +10,10 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 # Load lora
-from safetensors import safe_open
-checkpoint_dir = "final_checkpoint"
-adapter_path = checkpoint_dir + "/adapter_model.safetensors"
+adapter_path = 'final_checkpoint'
+model = AutoPeftModelForCausalLM.from_pretrained(adapter_path, device_map="auto", torch_dtype=torch.bfloat16)
 
-def load_lora_adjustments(lora_path):
-    lora_adjustments = {}
-    with safe_open(lora_path, framework="pt", device="cpu") as f:
-        for key in f.keys():
-            lora_adjustments[key] = f.get_tensor(key)
-    return lora_adjustments
-
-def apply_lora_adjustments(model, lora_adjustments):
-    # Apply the LORA adjustments to the model.
-    for name, param in model.named_parameters():
-        if name in lora_adjustments:
-            adjustment = lora_adjustments[name]
-            param.data = param.data + adjustment
-
-lora_adjustments = load_lora_adjustments(adapter_path)
-apply_lora_adjustments(model, lora_adjustments)
+model = model.merge_and_unload()
 
 # Save the merged model
 merged_model_path = "merged_model"
@@ -38,3 +22,7 @@ model.save_pretrained(merged_model_path)
 tokenizer = AutoTokenizer.from_pretrained("final_checkpoint")
 tokenizer.padding_side = 'right'
 tokenizer.save_pretrained("merged_model")
+
+# Upload
+model.push_to_hub("org/model_name", private=True)
+tokenizer.push_to_hub("org/model_name", private=True)
