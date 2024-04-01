@@ -1,0 +1,2 @@
+# python gen_model_answer.py --model-path shisa-ai/shisa-jamba-v1-checkpoint-2416 --model-id shisa-jamba-v1-checkpoint-2416 --bench-name japanese_mt_bench --max-turns 1 --num-gpus-total 2 --num-gpus-per-model 2
+python gen_model_answer.py --model-path shisa-ai/shisa-jamba-v1-checkpoint-4228 --model-id shisa-jamba-v1-checkpoint-4228 --bench-name japanese_mt_bench --max-turns 1 --num-gpus-total 2 --num-gpus-per-model 2
