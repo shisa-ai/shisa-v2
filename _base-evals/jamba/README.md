@@ -68,7 +68,7 @@ python setup.py install
 cd ..
 git clone https://github.com/state-spaces/mamba
 cd mamba
-python setup.py install
+pip install .
 ```
 
 ## JA MT-Bench
