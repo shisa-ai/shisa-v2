@@ -27,6 +27,7 @@ def evaluate(tokenizer):
 
 
 TOKENIZERS = [
+    ("augmxnt/shisa-7b-v1", AutoTokenizer, "shisa-v1"),
     ("ai21labs/Jamba-v0.1", AutoTokenizer, "Jamba"),
     ("databricks/dbrx-instruct", AutoTokenizer, "DBRX"),
     ("tokyotech-llm/Swallow-MX-8x7b-NVE-v0.1", AutoTokenizer, "Swallow MX NVE"),
