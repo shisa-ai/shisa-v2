@@ -33,6 +33,7 @@ TOKENIZERS = [
     ("tokyotech-llm/Swallow-MX-8x7b-NVE-v0.1", AutoTokenizer, "Swallow MX NVE"),
     ("01-ai/Yi-34B-200K", AutoTokenizer, "Yi 34B 200K"),
     ("OrionStarAI/Orion-14B-Base", AutoTokenizer, "Orion 14B"),
+    ("CohereForAI/c4ai-command-r-plus", AutoTokenizer, "Cohere Command-R+"),
 ]
 
 
