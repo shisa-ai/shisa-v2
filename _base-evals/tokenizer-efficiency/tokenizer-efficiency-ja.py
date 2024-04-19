@@ -1,20 +1,38 @@
 # Download a single sample file from CulturaX dataset.
-from datasets import Dataset
+from   datasets import Dataset
+from   epochraft import CheckpointableDataset
 import glob
-from epochraft import CheckpointableDataset
-from transformers import AutoTokenizer, LlamaTokenizer
+from   huggingface_hub import snapshot_download
+import json
+import os
 import pandas as pd
-from huggingface_hub import snapshot_download
 import sys
+from   transformers import AutoTokenizer, LlamaTokenizer
 
 # Download a single sample file from CulturaX dataset.
-snapshot_download(repo_id='uonlp/CulturaX', local_dir='CulturaX', allow_patterns=['*ja_part_00004.parquet'], repo_type='dataset')
-dataset = Dataset.from_parquet('CulturaX/ja/ja_part_00004.parquet')
-dataset.to_json('test.jsonl')
+if not os.path.exists("ja_part_00004.jsonl"):
+    snapshot_download(repo_id='uonlp/CulturaX', local_dir='CulturaX', allow_patterns=['*ja_part_00004.parquet'], repo_type='dataset')
+    dataset = Dataset.from_parquet('CulturaX/ja/ja_part_00004.parquet')
+    dataset.to_json('ja_part_00004.jsonl')
+
+
+def load_cache(cache_file):
+    try:
+        with open(cache_file, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def save_cache(cache_file, cache):
+    with open(cache_file, 'w') as f:
+        json.dump(cache, f)
+
+
+
 
 
 def evaluate(tokenizer):
-    dataset = CheckpointableDataset.from_files("test.jsonl").tokenize(tokenizer, parallel=False).take(50000)
+    dataset = CheckpointableDataset.from_files("ja_part_00004.jsonl").tokenize(tokenizer, parallel=False).take(50000)
     n_chars = 0
     n_tokens = 0
     for sample in dataset:
@@ -36,10 +54,15 @@ TOKENIZERS = [
     ("01-ai/Yi-34B-200K", AutoTokenizer, "Yi 34B 200K"),
     ("OrionStarAI/Orion-14B-Base", AutoTokenizer, "Orion 14B"),
     ("CohereForAI/c4ai-command-r-plus", AutoTokenizer, "Cohere Command-R+"),
+    ("NousResearch/Meta-Llama-3-8B", AutoTokenizer, "Llama 3"),
 ]
 
 
-def generate_row(tokenizer_url, tokenizer_cls, tokenizer_name):
+def generate_row(tokenizer_url, tokenizer_cls, tokenizer_name, cache):
+    if tokenizer_url in cache:
+        print("found in cache")
+        return cache[tokenizer_url]
+
     print(tokenizer_name)
     tokenizer = tokenizer_cls.from_pretrained(tokenizer_url, trust_remote_code=True)
     if 'custom-tokenizer' in tokenizer_url:
@@ -52,18 +75,32 @@ def generate_row(tokenizer_url, tokenizer_cls, tokenizer_name):
         "1トークンあたりの平均文字数": evaluate(tokenizer)
     }
     '''
-    return {
+    result = {
         "LLM": tokenizer_name,
         "Tokenizer": tokenizer_url,
         "Vocab Size": tokenizer.vocab_size,
         "Avg Char/Token": evaluate(tokenizer)
     }
 
+    cache[tokenizer_url] = result
+    save_cache(cache_file, cache)
+
+    return result
+
+
+### 
+
+cache_file = 'tokenizer-eval-ja.json'
+cache = load_cache(cache_file)
+
 result = pd.DataFrame(
     [
-        generate_row(*args)
+        generate_row(*args, cache)
         for args in TOKENIZERS
     ]
 )
+
+
+
 print(result)
 result.to_markdown('tokenizer-eval-ja.md')
