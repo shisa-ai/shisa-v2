@@ -9,13 +9,50 @@ import pandas as pd
 import sys
 from   transformers import AutoTokenizer, LlamaTokenizer
 
-# Download a single sample file from CulturaX dataset.
-if not os.path.exists("ja_part_00004.jsonl"):
-    snapshot_download(repo_id='uonlp/CulturaX', local_dir='CulturaX', allow_patterns=['*ja_part_00004.parquet'], repo_type='dataset')
-    dataset = Dataset.from_parquet('CulturaX/ja/ja_part_00004.parquet')
-    dataset.to_json('ja_part_00004.jsonl')
+
+### Settings
+CULTURAX_DS = "ja_part_00004"
+OUTPUT = "tokenizer-eval-ja"
+TOKENIZERS = [
+    ("augmxnt/shisa-7b-v1", AutoTokenizer, "shisa-v1"),
+    ("ai21labs/Jamba-v0.1", AutoTokenizer, "Jamba"),
+    ("databricks/dbrx-instruct", AutoTokenizer, "DBRX"),
+    ("tokyotech-llm/Swallow-MX-8x7b-NVE-v0.1", AutoTokenizer, "Swallow MX NVE"),
+    ("01-ai/Yi-34B-200K", AutoTokenizer, "Yi 34B 200K"),
+    ("OrionStarAI/Orion-14B-Base", AutoTokenizer, "Orion 14B"),
+    ("CohereForAI/c4ai-command-r-plus", AutoTokenizer, "Cohere Command-R+"),
+    ("NousResearch/Meta-Llama-3-8B", AutoTokenizer, "Llama 3"),
+]
 
 
+### Main
+def main():
+    # Download a single sample file from CulturaX dataset.
+    if not os.path.exists(f"{CULTURAX_DS}.jsonl"):
+        print(f"Processing CulturaX: {CULTURAX_DS} ...")
+        snapshot_download(repo_id='uonlp/CulturaX', local_dir='CulturaX', allow_patterns=[f'*{CULTURAX_DS}.parquet'], repo_type='dataset')
+        dataset = Dataset.from_parquet(f'CulturaX/{CULTURAX_DS[:2]}/{CULTURAX_DS}.parquet')
+        dataset.to_json(f'{CULTURAX_DS}.jsonl')
+
+    cache_file = f'{OUTPUT}.json'
+    cache = load_cache(cache_file)
+
+    result = pd.DataFrame(
+        [
+            generate_row(*args, cache)
+            for args in TOKENIZERS
+        ]
+    )
+
+    print()
+    print('===')
+    print(result)
+    result.to_markdown(f'{OUTPUT}.md')
+
+
+#### FUNCTIONS ###
+
+### Cache
 def load_cache(cache_file):
     try:
         with open(cache_file, 'r') as f:
@@ -28,11 +65,8 @@ def save_cache(cache_file, cache):
         json.dump(cache, f)
 
 
-
-
-
 def evaluate(tokenizer):
-    dataset = CheckpointableDataset.from_files("ja_part_00004.jsonl").tokenize(tokenizer, parallel=False).take(50000)
+    dataset = CheckpointableDataset.from_files(f"{CULTURAX_DS}.jsonl").tokenize(tokenizer, parallel=False).take(50000)
     n_chars = 0
     n_tokens = 0
     for sample in dataset:
@@ -46,24 +80,14 @@ def evaluate(tokenizer):
         return 0
 
 
-TOKENIZERS = [
-    ("augmxnt/shisa-7b-v1", AutoTokenizer, "shisa-v1"),
-    ("ai21labs/Jamba-v0.1", AutoTokenizer, "Jamba"),
-    ("databricks/dbrx-instruct", AutoTokenizer, "DBRX"),
-    ("tokyotech-llm/Swallow-MX-8x7b-NVE-v0.1", AutoTokenizer, "Swallow MX NVE"),
-    ("01-ai/Yi-34B-200K", AutoTokenizer, "Yi 34B 200K"),
-    ("OrionStarAI/Orion-14B-Base", AutoTokenizer, "Orion 14B"),
-    ("CohereForAI/c4ai-command-r-plus", AutoTokenizer, "Cohere Command-R+"),
-    ("NousResearch/Meta-Llama-3-8B", AutoTokenizer, "Llama 3"),
-]
-
-
 def generate_row(tokenizer_url, tokenizer_cls, tokenizer_name, cache):
+    print()
+    print(tokenizer_name)
+    print('===')
     if tokenizer_url in cache:
-        print("found in cache")
+        print("> found in cache")
         return cache[tokenizer_url]
 
-    print(tokenizer_name)
     tokenizer = tokenizer_cls.from_pretrained(tokenizer_url, trust_remote_code=True)
     if 'custom-tokenizer' in tokenizer_url:
         tokenizer = tokenizer_cls.from_pretrained(tokenizer_url, use_fast=True, trust_remote_code=True)
@@ -88,19 +112,5 @@ def generate_row(tokenizer_url, tokenizer_cls, tokenizer_name, cache):
     return result
 
 
-### 
-
-cache_file = 'tokenizer-eval-ja.json'
-cache = load_cache(cache_file)
-
-result = pd.DataFrame(
-    [
-        generate_row(*args, cache)
-        for args in TOKENIZERS
-    ]
-)
-
-
-
-print(result)
-result.to_markdown('tokenizer-eval-ja.md')
+if __name__ == "__main__":
+    main()
