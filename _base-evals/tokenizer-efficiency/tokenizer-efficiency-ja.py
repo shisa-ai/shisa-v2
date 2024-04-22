@@ -22,6 +22,7 @@ TOKENIZERS = [
     ("OrionStarAI/Orion-14B-Base", AutoTokenizer, "Orion 14B"),
     ("CohereForAI/c4ai-command-r-plus", AutoTokenizer, "Cohere Command-R+"),
     ("NousResearch/Meta-Llama-3-8B", AutoTokenizer, "Llama 3"),
+    ("Rakuten/RakutenAI-7B", AutoTokenizer, "RakutenAI-7B"),
 ]
 
 
@@ -107,6 +108,7 @@ def generate_row(tokenizer_url, tokenizer_cls, tokenizer_name, cache):
     }
 
     cache[tokenizer_url] = result
+    cache_file = f'{OUTPUT}.json'
     save_cache(cache_file, cache)
 
     return result

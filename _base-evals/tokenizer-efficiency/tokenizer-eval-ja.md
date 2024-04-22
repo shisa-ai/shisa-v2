@@ -8,3 +8,4 @@
 |  5 | Orion 14B         | OrionStarAI/Orion-14B-Base             |        84608 |         1.7117   |
 |  6 | Cohere Command-R+ | CohereForAI/c4ai-command-r-plus        |       255000 |         1.64356  |
 |  7 | Llama 3           | NousResearch/Meta-Llama-3-8B           |       128000 |         1.4549   |
+|  8 | RakutenAI-7B      | Rakuten/RakutenAI-7B                   |        48000 |         1.6117   |
