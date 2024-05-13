@@ -9,3 +9,5 @@
 |  6 | Cohere Command-R+ | CohereForAI/c4ai-command-r-plus        |       255000 |         1.64356  |
 |  7 | Llama 3           | NousResearch/Meta-Llama-3-8B           |       128000 |         1.4549   |
 |  8 | RakutenAI-7B      | Rakuten/RakutenAI-7B                   |        48000 |         1.6117   |
+|  9 | Yi 1.5            | 01-ai/Yi-1.5-34B-Chat                  |        64000 |         0.831878 |
+| 10 | Falcon 2          | tiiuae/falcon-11B                      |        65024 |         0.756638 |

@@ -22,6 +22,9 @@ TOKENIZERS = [
     ("OrionStarAI/Orion-14B-Base", AutoTokenizer, "Orion 14B"),
     ("CohereForAI/c4ai-command-r-plus", AutoTokenizer, "Cohere Command-R+"),
     ("NousResearch/Meta-Llama-3-8B", AutoTokenizer, "Llama 3"),
+    ("Rakuten/RakutenAI-7B", AutoTokenizer, "RakutenAI-7B"),
+    ("01-ai/Yi-1.5-34B-Chat", AutoTokenizer, "Yi 1.5"),
+    ("tiiuae/falcon-11B", AutoTokenizer, "Falcon 2"),
 ]
 
 
