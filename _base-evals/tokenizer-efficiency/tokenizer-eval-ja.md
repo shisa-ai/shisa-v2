@@ -11,3 +11,5 @@
 |  8 | RakutenAI-7B      | Rakuten/RakutenAI-7B                   |        48000 |         1.6117   |
 |  9 | Yi 1.5            | 01-ai/Yi-1.5-34B-Chat                  |        64000 |         0.831878 |
 | 10 | Falcon 2          | tiiuae/falcon-11B                      |        65024 |         0.756638 |
+| 11 | GPT-4             | Xenova/gpt-4                           |       100263 |         0.998234 |
+| 12 | GPT-4o            | Xenova/gpt-4o                          |       200000 |         1.3897   |
