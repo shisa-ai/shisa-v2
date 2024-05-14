@@ -25,6 +25,8 @@ TOKENIZERS = [
     ("Rakuten/RakutenAI-7B", AutoTokenizer, "RakutenAI-7B"),
     ("01-ai/Yi-1.5-34B-Chat", AutoTokenizer, "Yi 1.5"),
     ("tiiuae/falcon-11B", AutoTokenizer, "Falcon 2"),
+    ("Xenova/gpt-4", AutoTokenizer, "GPT-4"),
+    ("Xenova/gpt-4o", AutoTokenizer, "GPT-4o"),
 ]
 
 
