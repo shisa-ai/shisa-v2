@@ -27,6 +27,8 @@ TOKENIZERS = [
     ("tiiuae/falcon-11B", AutoTokenizer, "Falcon 2"),
     ("Xenova/gpt-4", AutoTokenizer, "GPT-4"),
     ("Xenova/gpt-4o", AutoTokenizer, "GPT-4o"),
+    ("google/gemma-7b", AutoTokenizer, "Gemma 7B"),
+    ("stockmark/stockmark-100b", AutoTokenizer, "Stockmark 100B"),
 ]
 
 

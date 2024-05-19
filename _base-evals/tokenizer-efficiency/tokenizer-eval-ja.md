@@ -13,3 +13,5 @@
 | 10 | Falcon 2          | tiiuae/falcon-11B                      |        65024 |         0.756638 |
 | 11 | GPT-4             | Xenova/gpt-4                           |       100263 |         0.998234 |
 | 12 | GPT-4o            | Xenova/gpt-4o                          |       200000 |         1.3897   |
+| 13 | Gemma 7B          | google/gemma-7b                        |       256000 |         1.85274  |
+| 14 | Stockmark 100B    | stockmark/stockmark-100b               |        60032 |         2.04877  |
