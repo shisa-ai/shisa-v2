@@ -1,0 +1,1 @@
+srun --pty bash
