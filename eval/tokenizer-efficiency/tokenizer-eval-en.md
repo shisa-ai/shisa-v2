@@ -15,3 +15,4 @@
 | 12 | GPT-4o            | Xenova/gpt-4o                          |       200000 |          4.65736 |
 | 13 | Gemma 7B          | google/gemma-7b                        |       256000 |          4.47085 |
 | 14 | Stockmark 100B    | stockmark/stockmark-100b               |        60032 |          3.99234 |
+| 15 | Microsoft Phi 3   | microsoft/Phi-3-medium-128k-instruct   |        32000 |          3.86401 |
