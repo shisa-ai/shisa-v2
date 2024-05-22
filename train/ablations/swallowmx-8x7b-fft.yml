@@ -1,0 +1,62 @@
+base_model: tokyotech-llm/Swallow-MX-8x7b-NVE-v0.1
+model_type: AutoModelForCausalLM
+tokenizer_type: LlamaTokenizer
+trust_remote_code: true
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+chat_template: inst
+datasets:
+  - path: augmxnt/ultra-orca-boros-en-ja-v1
+    type: sharegpt
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.05
+output_dir: ./outputs/basemodel-swallowmx-13a47b
+
+model_config:
+  output_router_logits: true
+
+sequence_len: 4096
+sample_packing: true
+pad_to_sequence_len: true
+
+use_wandb: true
+wandb_project: shisa-v2
+wandb_entity: augmxnt
+wandb_name: shisa-swallowmx-13a47b-v1
+
+global_batch_size: 1
+gradient_accumulation_steps: 8
+micro_batch_size: 1
+num_epochs: 3
+# https://github.com/huggingface/transformers/issues/22101
+# https://github.com/huggingface/transformers/blob/main/src/transformers/training_args.py#L141
+optimizer: paged_adamw_8bit
+lr_scheduler: linear
+learning_rate: 2e-5
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: true
+
+gradient_checkpointing: true
+early_stopping_patience:
+resume_from_checkpoint:
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_ratio: 0.1
+evals_per_epoch: 2
+eval_table_size:
+saves_per_epoch: 1
+debug:
+deepspeed: axolotl/deepspeed_configs/zero3_bf16.json
+weight_decay: 0.0
+fsdp:
+fsdp_config:
+special_tokens:
