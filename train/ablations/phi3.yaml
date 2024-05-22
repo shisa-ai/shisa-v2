@@ -1,0 +1,64 @@
+base_model: microsoft/Phi-3-medium-128k-instruct
+model_type: AutoModelForCausalLM
+tokenizer_type: AutoTokenizer
+trust_remote_code: true
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+use_wandb: true
+wandb_project: shisa-v2
+wandb_entity: augmxnt
+wandb_name: shisa-llama3-70b-v1.8e6
+
+chat_template: chatml
+datasets:
+  - path: augmxnt/ultra-orca-boros-en-ja-v1
+    type: sharegpt
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.05
+output_dir: ./outputs/phi3-medium-128k-14b.8e6
+
+sequence_len: 4096
+sample_packing: true
+pad_to_sequence_len: true
+neftune_noise_alpha: 5
+
+gradient_accumulation_steps: 4
+micro_batch_size: 2
+num_epochs: 3
+optimizer: paged_adamw_8bit
+adam_beta2: 0.95
+adam_epsilon: 0.00001
+max_grad_norm: 1.0
+lr_scheduler: linear
+learning_rate: 0.000008
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: true
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: True
+early_stopping_patience:
+resume_from_checkpoint:
+local_rank:
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_steps: 100
+evals_per_epoch: 4
+saves_per_epoch: 1
+debug:
+deepspeed: axolotl/deepspeed_configs/zero3_bf16.json
+weight_decay: 0.1
+fsdp:
+fsdp_config:
+resize_token_embeddings_to_32x: true
+special_tokens:
+  pad_token: "<|endoftext|>"
