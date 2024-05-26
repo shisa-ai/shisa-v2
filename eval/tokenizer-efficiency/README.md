@@ -1,12 +1,3 @@
-# EN
+The `get-tokenizer-efficiency.py` script will pull an chunk (`{lang}_part_00004`, chosen arbitrarily) from [uonlp/CulturaX](https://huggingface.co/datasets/uonlp/CulturaX) and use it to calculate English and Japanese tokenizer efficiency.
 
-Compression rate: 4.582026513507673 chars / token (177168069 / 38665876)
-                 LLM                 Tokenizer  Vocab Size  Avg Char/Token
-0  DBRX (Databricks)  databricks/dbrx-instruct      100277        4.582027
-
-
-# JA
-Compression rate: 0.9982344074761388 chars / token (85523654 / 85674921)
-                 LLM                 Tokenizer  Vocab Size  Avg Char/Token
-0  DBRX (Databricks)  databricks/dbrx-instruct      100277        0.998234
-
+Prior results are cached in the json files, md has human readable tables.
