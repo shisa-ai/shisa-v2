@@ -16,3 +16,4 @@
 | 13 | Gemma 7B          | google/gemma-7b                        |       256000 |          4.47085 |
 | 14 | Stockmark 100B    | stockmark/stockmark-100b               |        60032 |          3.99234 |
 | 15 | Microsoft Phi 3   | microsoft/Phi-3-medium-128k-instruct   |        32000 |          3.86401 |
+| 16 | Mistral v0.3      | mistralai/Mistral-7B-v0.3              |        32768 |          4.00856 |
