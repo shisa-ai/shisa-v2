@@ -17,3 +17,5 @@
 | 14 | Stockmark 100B    | stockmark/stockmark-100b               |        60032 |         2.04877  |
 | 15 | Microsoft Phi 3   | microsoft/Phi-3-medium-128k-instruct   |        32000 |         0.883761 |
 | 16 | Mistral v0.3      | mistralai/Mistral-7B-v0.3              |        32768 |         0.945937 |
+| 17 | GLM-4             | THUDM/glm-4-9b-chat                    |       151329 |         1.45818  |
+| 18 | Qwen 2            | Qwen/Qwen2-7B-Instruct                 |       151643 |         1.47894  |
