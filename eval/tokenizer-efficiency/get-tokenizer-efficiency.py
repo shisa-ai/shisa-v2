@@ -27,6 +27,8 @@ TOKENIZERS = [
     ("stockmark/stockmark-100b", AutoTokenizer, "Stockmark 100B"),
     ("microsoft/Phi-3-medium-128k-instruct",  AutoTokenizer, "Microsoft Phi 3"),
     ("mistralai/Mistral-7B-v0.3",  AutoTokenizer, "Mistral v0.3"),
+    ("THUDM/glm-4-9b-chat", AutoTokenizer, "GLM-4"),
+    ("Qwen/Qwen2-7B-Instruct", AutoTokenizer, "Qwen 2"),
 ]
 
 
