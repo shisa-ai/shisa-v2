@@ -7,8 +7,21 @@ from   prompt_toolkit.keys import Keys
 import torch
 from   transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextStreamer
 
-model = 'dolphin-2.9.2-qwen2-7b'
+# model = 'dolphin-2.9.2-qwen2-7b'
+# model = 'Qwen2-7B-Instruct-deccp'
+model = 'gemma-2-9b-it'
+
 models = {
+    'gemma-2-9b-it': {
+        'prompt': None,
+        'model' : 'google/gemma-2-9b-it',
+        'format': 'gemma',
+    },
+    'Qwen2-7B-Instruct-deccp': {
+        'prompt': 'You are a helpful assistant.',
+        'model' : 'augmxnt/Qwen2-7B-Instruct-deccp',
+        'format': 'chatml',
+    },
     'dolphin-2.9.2-qwen2-7b': {
         'prompt': 'You are a helpful assistant.',
         'model' : 'cognitivecomputations/dolphin-2.9.2-qwen2-7b',
@@ -144,7 +157,7 @@ try:
         trust_remote_code=True,
         quantization_config=quantization_config,
         low_cpu_mem_usage=True,
-        attn_implementation="flash_attention_2",
+        # attn_implementation="flash_attention_2",
     )
 except:
     model = AutoModelForCausalLM.from_pretrained(
@@ -183,7 +196,10 @@ else:
     tokenizer.chat_template = "{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
 
 # system, user, assistant
-chat = [{"role": "system", "content": PROMPT}]
+if PROMPT:
+    chat = [{"role": "system", "content": PROMPT}]
+else:
+    chat = []
 
 # Initial multiline state
 multiline_mode = [True]
@@ -239,7 +255,10 @@ def chat_with_model():
                 break
             elif (command == '/clear' or command == '/reset'):
                 print('Resetting context...')
-                chat = [{"role": "system", "content": PROMPT}]
+                if PROMPT:
+                    chat = [{"role": "system", "content": PROMPT}]
+                else:
+                    chat = []
             elif command == '/prompt':
                 if not value:
                     print(f"Current prompt: {chat[0]['content']}")
