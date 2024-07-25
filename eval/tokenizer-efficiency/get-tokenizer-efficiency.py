@@ -63,11 +63,12 @@ class TokenizerEval:
             ]
         )
         result = result.sort_values(by="Avg Char/Token", ascending=False)
+        result = result.reset_index(drop=True)
 
         print()
         print('===')
         print(result)
-        result.to_markdown(f'{self.OUTPUT}.md')
+        result.to_markdown(f'{self.OUTPUT}.md', index=False)
 
 
     def load_cache(self, cache_file):
