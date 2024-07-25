@@ -62,6 +62,7 @@ class TokenizerEval:
                 for args in TOKENIZERS
             ]
         )
+        result = result.sort_values(by="Avg Char/Token", ascending=False)
 
         print()
         print('===')
