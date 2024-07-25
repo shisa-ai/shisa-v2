@@ -29,6 +29,10 @@ TOKENIZERS = [
     ("mistralai/Mistral-7B-v0.3",  AutoTokenizer, "Mistral v0.3"),
     ("THUDM/glm-4-9b-chat", AutoTokenizer, "GLM-4"),
     ("Qwen/Qwen2-7B-Instruct", AutoTokenizer, "Qwen 2"),
+    ("google/gemma-2-9b-it", AutoTokenizer, "Gemma 2"),
+    ("mistralai/Mistral-Nemo-Instruct-2407", AutoTokenizer, "Mistral Nemo (Tekken)"),
+    ("mistralai/Mistral-Large-Instruct-2407", AutoTokenizer, "Mistral Large 2"),
+    ("failspy/Nemotron-4-340B-Instruct-SafeTensors", AutoTokenizer, "Nemotron 4"),
 ]
 
 
