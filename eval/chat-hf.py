@@ -12,6 +12,11 @@ from   transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConf
 model = 'gemma-2-9b-it'
 
 models = {
+    'mistral-nemo': {
+        'prompt': 'You are a helpful assistant.',
+        'model': 'mistralai/Mistral-Nemo-Instruct-2407',
+        'format': 'llama-2',
+    },
     'gemma-2-9b-it': {
         'prompt': None,
         'model' : 'google/gemma-2-9b-it',
