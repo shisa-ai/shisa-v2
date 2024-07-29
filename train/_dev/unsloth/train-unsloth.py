@@ -25,9 +25,9 @@ import sys
 import wandb
 try:
     log_file = sys.argv[1]
-    run_name = log_file.split('shisa-v1-llama3-8b-qlora-unsloth-')[1].split('.log')[0]
+    run_name = log_file.split('shisa-v1-llama3.1-8b-qlora-unsloth-')[1].split('.log')[0]
 except:
-    run_name = datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_name = 'shisa-v1-llama3.1-8b-qlora-unsloth-' + datetime.now().strftime("%Y%m%d-%H%M%S")
 
 wandb.init(
     project="shisa-v2",
@@ -41,7 +41,7 @@ fourbit_models = [
 ] # More models at https://huggingface.co/unsloth
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = "meta-llama/Meta-Llama-3-8B-Instruct",
+    model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct",
     max_seq_length = max_seq_length,
     dtype = None,
     load_in_4bit = False,
@@ -109,7 +109,7 @@ trainer = SFTTrainer(
         fp16 = not is_bfloat16_supported(),
         bf16 = is_bfloat16_supported(),
         logging_steps = 1,
-        output_dir = "outputs",
+        output_dir = "outputs/shisa-v1-llama3.1-8b-unsloth-qlora",
         optim = "adamw_8bit",
         seed = 3407,
         include_tokens_per_second=True,
