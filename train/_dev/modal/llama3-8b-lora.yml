@@ -1,0 +1,60 @@
+base_model: NousResearch/Meta-Llama-3-8B
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+chat_template: chatml
+datasets:
+  # This will be the path used for the data when it is saved to the Volume in the cloud.
+  - path: augmxnt/ultra-orca-boros-en-ja-v1
+    ds_type: json
+    type: sharegpt
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.05
+output_dir: ./out
+
+sequence_len: 8192
+sample_packing: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_project: shisa-v2
+wandb_entity: augmxnt
+wandb_name: shisa-v1-llama3-8b-lora
+
+gradient_accumulation_steps: 8
+micro_batch_size: 1
+num_epochs: 3
+optimizer: paged_adamw_8bit
+lr_scheduler: linear
+learning_rate: 8e-6
+
+train_on_inputs: false
+group_by_length: false
+bf16: true
+fp16: false
+tf32: false
+
+gradient_checkpointing: true
+early_stopping_patience:
+resume_from_checkpoint:
+local_rank:
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_steps: 100
+eval_per_epoch: 2 
+eval_table_size:
+saves_per_epoch: 0
+save_steps:
+debug:
+deepspeed: /workspace/axolotl/deepspeed_configs/zero3_bf16.json
+weight_decay: 0.01
+fsdp:
+fsdp_config:
+special_tokens:
+  pad_token: <|endoftext|>
