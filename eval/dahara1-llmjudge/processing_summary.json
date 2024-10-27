@@ -1,0 +1,11 @@
+[
+  {
+    "model": "mgoin/Nemotron-4-340B-Instruct-hf",
+    "backend": "vLLM",
+    "examples_per_second": 0.9523441226232553,
+    "total_examples": 4066,
+    "processing_time": 4269.4651055336,
+    "model_load_time": 851.563234090805,
+    "batch_size": 2048
+  }
+]

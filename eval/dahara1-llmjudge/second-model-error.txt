@@ -1,0 +1,116 @@
+2024-10-26 18:45:39,182 - INFO - Attempting to load Qwen/Qwen2.5-32B-Instruct with vLLM backend...
+INFO 10-26 18:45:45 config.py:887] Defaulting to use mp for distributed inference
+INFO 10-26 18:45:45 config.py:916] Disabled the custom all-reduce kernel because it is not supported on AMD GPUs.
+INFO 10-26 18:45:45 llm_engine.py:237] Initializing an LLM engine (v0.6.4.dev9+g5d264f4a) with config: model='Qwen/Qwen2.5-32B-Instruct', speculative_config=None, tokenizer='Qwen/Qwen2.5-32B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, override_neuron_config=None, rope_scaling=None, rope_theta=None, tokenizer_revision=None, trust_remote_code=True, dtype=torch.bfloat16, max_seq_len=1024, download_dir=None, load_format=LoadFormat.AUTO, tensor_parallel_size=8, pipeline_parallel_size=1, disable_custom_all_reduce=True, quantization=fp8, enforce_eager=False, kv_cache_dtype=auto, quantization_param_path=None, device_config=cuda, decoding_config=DecodingConfig(guided_decoding_backend='outlines'), observability_config=ObservabilityConfig(otlp_traces_endpoint=None, collect_model_forward_time=False, collect_model_execute_time=False), seed=0, served_model_name=Qwen/Qwen2.5-32B-Instruct, use_v2_block_manager=True, num_scheduler_steps=1, chunked_prefill_enabled=False multi_step_stream_outputs=True, enable_prefix_caching=False, use_async_output_proc=True, use_cached_outputs=False, mm_processor_kwargs=None)
+(VllmWorkerProcess pid=98756) INFO 10-26 18:45:56 selector.py:120] Using ROCmFlashAttention backend.
+(VllmWorkerProcess pid=98754) INFO 10-26 18:45:56 selector.py:120] Using ROCmFlashAttention backend.
+(VllmWorkerProcess pid=98755) INFO 10-26 18:45:56 selector.py:120] Using ROCmFlashAttention backend.
+(VllmWorkerProcess pid=98757) INFO 10-26 18:45:56 selector.py:120] Using ROCmFlashAttention backend.
+(VllmWorkerProcess pid=98758) INFO 10-26 18:45:56 selector.py:120] Using ROCmFlashAttention backend.
+(VllmWorkerProcess pid=98759) INFO 10-26 18:45:56 selector.py:120] Using ROCmFlashAttention backend.
+(VllmWorkerProcess pid=98756) INFO 10-26 18:45:56 multiproc_worker_utils.py:216] Worker ready; awaiting tasks
+(VllmWorkerProcess pid=98753) INFO 10-26 18:45:56 selector.py:120] Using ROCmFlashAttention backend.
+(VllmWorkerProcess pid=98754) INFO 10-26 18:45:56 multiproc_worker_utils.py:216] Worker ready; awaiting tasks
+(VllmWorkerProcess pid=98755) INFO 10-26 18:45:56 multiproc_worker_utils.py:216] Worker ready; awaiting tasks
+(VllmWorkerProcess pid=98757) INFO 10-26 18:45:56 multiproc_worker_utils.py:216] Worker ready; awaiting tasks
+(VllmWorkerProcess pid=98758) INFO 10-26 18:45:56 multiproc_worker_utils.py:216] Worker ready; awaiting tasks
+(VllmWorkerProcess pid=98759) INFO 10-26 18:45:56 multiproc_worker_utils.py:216] Worker ready; awaiting tasks
+(VllmWorkerProcess pid=98753) INFO 10-26 18:45:56 multiproc_worker_utils.py:216] Worker ready; awaiting tasks
+[E1026 18:54:43.118551298 socket.cpp:1010] [c10d] The client socket has timed out after 600000ms while trying to connect to (127.0.0.1, 35933).
+[W1026 18:54:43.118923898 TCPStore.cpp:345] [c10d] TCP client failed to connect/validate to host 127.0.0.1:35933 - retrying (try=0, timeout=600000ms, delay=89056ms): The client socket has timed out after 600000ms while trying to connect to (127.0.0.1, 35933).
+Exception raised from throwTimeoutError at ../torch/csrc/distributed/c10d/socket.cpp:1012 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x96 (0x7c73d3dede06 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x15eb578 (0x7c73be1eb578 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x605ff95 (0x7c73c2c5ff95 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x6060136 (0x7c73c2c60136 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: <unknown function> + 0x60605a4 (0x7c73c2c605a4 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: <unknown function> + 0x601cb86 (0x7c73c2c1cb86 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #6: c10d::TCPStore::TCPStore(std::string, c10d::TCPStoreOptions const&) + 0x20c (0x7c73c2c1facc in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #7: <unknown function> + 0xdc3faf (0x7c73d2dc3faf in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
+frame #8: <unknown function> + 0x4d0374 (0x7c73d24d0374 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
+frame #9: <unknown function> + 0x1f94d6 (0x5ffb8a2c74d6 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #10: _PyObject_MakeTpCall + 0x29b (0x5ffb8a2a4a2b in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #11: <unknown function> + 0x227586 (0x5ffb8a2f5586 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #12: _PyObject_Call + 0x12b (0x5ffb8a2e0e5b in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #13: <unknown function> + 0x210494 (0x5ffb8a2de494 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #14: <unknown function> + 0x1d6ce1 (0x5ffb8a2a4ce1 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #15: <unknown function> + 0x4cebbb (0x7c73d24cebbb in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
+frame #16: _PyObject_MakeTpCall + 0x29b (0x5ffb8a2a4a2b in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #17: _PyEval_EvalFrameDefault + 0x70a (0x5ffb8a2b20da in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #18: <unknown function> + 0x273397 (0x5ffb8a341397 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #19: <unknown function> + 0x1ffe03 (0x5ffb8a2cde03 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #20: PyObject_Vectorcall + 0x2c (0x5ffb8a2bec0c in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #21: _PyEval_EvalFrameDefault + 0x70a (0x5ffb8a2b20da in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #22: _PyFunction_Vectorcall + 0x17f (0x5ffb8a2d6dbf in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #23: PyObject_Call + 0x134 (0x5ffb8a2e0be4 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #24: _PyEval_EvalFrameDefault + 0x45d7 (0x5ffb8a2b5fa7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #25: _PyFunction_Vectorcall + 0x17f (0x5ffb8a2d6dbf in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #26: PyObject_Call + 0x134 (0x5ffb8a2e0be4 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #27: _PyEval_EvalFrameDefault + 0x45d7 (0x5ffb8a2b5fa7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #28: <unknown function> + 0x227d02 (0x5ffb8a2f5d02 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #29: <unknown function> + 0x2275d0 (0x5ffb8a2f55d0 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #30: _PyEval_EvalFrameDefault + 0x45d7 (0x5ffb8a2b5fa7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #31: _PyFunction_Vectorcall + 0x17f (0x5ffb8a2d6dbf in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #32: PyObject_Call + 0x134 (0x5ffb8a2e0be4 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #33: _PyEval_EvalFrameDefault + 0x45d7 (0x5ffb8a2b5fa7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #34: <unknown function> + 0x29b10d (0x5ffb8a36910d in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #35: PyEval_EvalCode + 0x9f (0x5ffb8a36884f in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #36: <unknown function> + 0x2b877a (0x5ffb8a38677a in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #37: <unknown function> + 0x2b4403 (0x5ffb8a382403 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #38: PyRun_StringFlags + 0x62 (0x5ffb8a376e52 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #39: PyRun_SimpleStringFlags + 0x3c (0x5ffb8a376c0c in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #40: Py_RunMain + 0x24c (0x5ffb8a39155c in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #41: Py_BytesMain + 0x37 (0x5ffb8a358ac7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #42: <unknown function> + 0x29d90 (0x7c73d4a29d90 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #43: __libc_start_main + 0x80 (0x7c73d4a29e40 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #44: <unknown function> + 0x28a97a (0x5ffb8a35897a in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+
+
+[E1026 18:55:11.267807549 socket.cpp:1010] [c10d] The client socket has timed out after 600000ms while trying to connect to (127.0.0.1, 35933).
+[W1026 18:55:11.268683495 TCPStore.cpp:345] [c10d] TCP client failed to connect/validate to host 127.0.0.1:35933 - retrying (try=0, timeout=600000ms, delay=65332ms): The client socket has timed out after 600000ms while trying to connect to (127.0.0.1, 35933).
+Exception raised from throwTimeoutError at ../torch/csrc/distributed/c10d/socket.cpp:1012 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x96 (0x753d368dde06 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x15eb578 (0x753d20deb578 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x605ff95 (0x753d2585ff95 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x6060136 (0x753d25860136 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: <unknown function> + 0x60605a4 (0x753d258605a4 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: <unknown function> + 0x601cb86 (0x753d2581cb86 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #6: c10d::TCPStore::TCPStore(std::string, c10d::TCPStoreOptions const&) + 0x20c (0x753d2581facc in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #7: <unknown function> + 0xdc3faf (0x753d359c3faf in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
+frame #8: <unknown function> + 0x4d0374 (0x753d350d0374 in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
+frame #9: <unknown function> + 0x1f94d6 (0x6395f716d4d6 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #10: _PyObject_MakeTpCall + 0x29b (0x6395f714aa2b in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #11: <unknown function> + 0x227586 (0x6395f719b586 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #12: _PyObject_Call + 0x12b (0x6395f7186e5b in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #13: <unknown function> + 0x210494 (0x6395f7184494 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #14: <unknown function> + 0x1d6ce1 (0x6395f714ace1 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #15: <unknown function> + 0x4cebbb (0x753d350cebbb in /home/hotaisle/miniforge3/envs/vllm/lib/python3.11/site-packages/torch/lib/libtorch_python.so)
+frame #16: _PyObject_MakeTpCall + 0x29b (0x6395f714aa2b in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #17: _PyEval_EvalFrameDefault + 0x70a (0x6395f71580da in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #18: <unknown function> + 0x273397 (0x6395f71e7397 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #19: <unknown function> + 0x1ffe03 (0x6395f7173e03 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #20: PyObject_Vectorcall + 0x2c (0x6395f7164c0c in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #21: _PyEval_EvalFrameDefault + 0x70a (0x6395f71580da in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #22: _PyFunction_Vectorcall + 0x17f (0x6395f717cdbf in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #23: PyObject_Call + 0x134 (0x6395f7186be4 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #24: _PyEval_EvalFrameDefault + 0x45d7 (0x6395f715bfa7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #25: _PyFunction_Vectorcall + 0x17f (0x6395f717cdbf in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #26: PyObject_Call + 0x134 (0x6395f7186be4 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #27: _PyEval_EvalFrameDefault + 0x45d7 (0x6395f715bfa7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #28: <unknown function> + 0x227d02 (0x6395f719bd02 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #29: <unknown function> + 0x2275d0 (0x6395f719b5d0 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #30: _PyEval_EvalFrameDefault + 0x45d7 (0x6395f715bfa7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #31: _PyFunction_Vectorcall + 0x17f (0x6395f717cdbf in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #32: PyObject_Call + 0x134 (0x6395f7186be4 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #33: _PyEval_EvalFrameDefault + 0x45d7 (0x6395f715bfa7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #34: <unknown function> + 0x29b10d (0x6395f720f10d in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #35: PyEval_EvalCode + 0x9f (0x6395f720e84f in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #36: <unknown function> + 0x2b877a (0x6395f722c77a in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #37: <unknown function> + 0x2b4403 (0x6395f7228403 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #38: PyRun_StringFlags + 0x62 (0x6395f721ce52 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #39: PyRun_SimpleStringFlags + 0x3c (0x6395f721cc0c in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #40: Py_RunMain + 0x24c (0x6395f723755c in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #41: Py_BytesMain + 0x37 (0x6395f71feac7 in /home/hotaisle/miniforge3/envs/vllm/bin/python)
+frame #42: <unknown function> + 0x29d90 (0x753d37629d90 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #43: __libc_start_main + 0x80 (0x753d37629e40 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #44: <unknown function> + 0x28a97a (0x6395f71fe97a in /home/hotaisle/miniforge3/envs/vllm/bin/python)
