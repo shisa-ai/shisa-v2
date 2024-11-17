@@ -1,0 +1,58 @@
+base_model: meta-llama/Meta-Llama-3.1-8B-Instruct
+model_type: LlamaForCausalLM
+tokenizer_type: AutoTokenizer
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+chat_template: llama3
+datasets:
+  - path: augmxnt/ultra-orca-boros-en-ja-v1
+    type: sharegpt
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.05
+output_dir: ./outputs/basemodel-llama3-8b
+
+sequence_len: 8192
+sample_packing: true
+pad_to_sequence_len: true
+
+use_wandb: true
+wandb_project: shisa-v2
+wandb_entity: augmxnt
+wandb_name: mi300x-shisa-llama3.1-8b-v1-dsz3
+
+gradient_accumulation_steps: 1
+micro_batch_size: 8
+num_epochs: 3
+optimizer: paged_adamw_8bit
+lr_scheduler: linear
+learning_rate: 8e-6
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+early_stopping_patience:
+resume_from_checkpoint:
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_steps: 100
+evals_per_epoch: 2
+eval_table_size:
+saves_per_epoch: 1
+debug:
+deepspeed: axolotl/deepspeed_configs/zero3_bf16.json
+weight_decay: 0.0
+fsdp:
+fsdp_config:
+special_tokens:
+  pad_token: <|end_of_text|>
