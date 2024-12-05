@@ -1,0 +1,71 @@
+base_model: meta-llama/Llama-3.1-70B
+model_type: LlamaForCausalLM
+tokenizer_type: AutoTokenizer
+
+trust_remote_code: true
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+use_wandb: true
+wandb_project: shisa-v2
+wandb_entity: augmxnt
+wandb_name: mi300x-shisa-v1-llama-3.1-base-70b
+
+chat_template: alpaca
+
+datasets:
+  - path: augmxnt/ultra-orca-boros-en-ja-v1
+    type: chat_template
+
+    field_messages: conversations
+    message_field_role: from
+    message_field_content: value
+
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.05
+output_dir: ./outputs/shisa-v1-llama-3.1-base-70b
+
+sequence_len: 4096
+sample_packing: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+gradient_accumulation_steps: 1
+micro_batch_size: 4
+num_epochs: 3
+optimizer: paged_adamw_8bit
+lr_scheduler: linear
+learning_rate: 8e-6
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32:
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+early_stopping_patience:
+resume_from_checkpoint:
+auto_resume_from_checkpoints: true
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_ratio: 0.1
+evals_per_epoch: 2
+eval_table_size:
+saves_per_epoch: 0
+debug:
+deepspeed: axolotl/deepspeed_configs/zero3_bf16.json
+weight_decay: 0.05
+fsdp:
+fsdp_config:
+special_tokens:
+  bos_token: <|begin_of_text|>
+  eos_token: <|end_of_text|>
+  pad_token: <|end_of_text|>
