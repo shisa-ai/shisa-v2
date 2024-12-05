@@ -1,0 +1,94 @@
+base_model: meta-llama/Llama-3.1-70B
+model_type: LlamaForCausalLM
+tokenizer_type: AutoTokenizer
+
+trust_remote_code: true
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+use_wandb: true
+wandb_project: shisa-v2
+wandb_entity: augmxnt
+wandb_name: mi300x-shisa-v1-llama-3.1-base-70b
+
+chat_template: alpaca
+
+datasets:
+  - path: augmxnt/ultra-orca-boros-en-ja-v1
+    type: chat_template
+
+    field_messages: conversations
+    message_field_role: from
+    message_field_content: value
+
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.05
+output_dir: ./outputs/shisa-v1-llama-3.1-base-70b
+
+sequence_len: 4096
+sample_packing: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+gradient_accumulation_steps: 1
+micro_batch_size: 4
+num_epochs: 3
+# optimizer: paged_adamw_8bit - not compatible w/ FSDP offload
+# optimizer.lax-or-strict[lax=chain[str,function-plain[to_enum()]],strict=json-or-python[json=function-after[to_enum(), str],python=is-instance[OptimizerNames]]]
+#   Input should be 'adamw_hf', 'adamw_torch', 'adamw_torch_fused', 'adamw_torch_xla', 'adamw_torch_npu_fused', 'adamw_apex_fused', 'adafactor', 'adamw_anyprecision', 'adamw_torch_4bit', 'ademamix', 'sgd', 'adagrad', 'adamw_bnb_8bit', 'adamw_8bit', 'ademamix_8bit', 'lion_8bit', 'lion_32bit', 'paged_adamw_32bit', 'paged_adamw_8bit', 'paged_ademamix_32bit', 'paged_ademamix_8bit', 'paged_lion_32bit', 'paged_lion_8bit', 'rmsprop', 'rmsprop_bnb', 'rmsprop_bnb_8bit', 'rmsprop_bnb_32bit', 'galore_adamw', 'galore_adamw_8bit', 'galore_adafactor', 'galore_adamw_layerwise', 'galore_adamw_8bit_layerwise', 'galore_adafactor_layerwise', 'lomo', 'adalomo', 'grokadamw', 'schedule_free_adamw' or 'schedule_free_sgd' [type=enum, input_value='paged_adamw', input_type=str]
+optimizer: adamw_torch_fused
+lr_scheduler: linear
+learning_rate: 8e-6
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32:
+
+gradient_checkpointing: false  # don't use with fsdp_activation_checkpointing
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+early_stopping_patience:
+resume_from_checkpoint:
+auto_resume_from_checkpoints: true
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_ratio: 0.1
+evals_per_epoch: 2
+eval_table_size:
+saves_per_epoch: 0
+debug:
+weight_decay: 0.05
+
+# Set mixed precision to fp16 to emulate DeepSpeed's behavior
+# mixed_precision: fp16
+
+# FSDP settings - see https://huggingface.co/docs/accelerate/en/concept_guides/fsdp_and_deepspeed
+deepspeed:
+fsdp:
+  - full_shard
+  - auto_wrap
+
+fsdp_config:
+  fsdp_limit_all_gathers: true                    # Limit all-gather operations
+  fsdp_sync_module_states: true                   # Synchronize module states across GPUs
+  fsdp_offload_params: true                       # OOM so set true; Do not offload parameters to CPU
+  fsdp_use_orig_params: false                     # Not using torch.compile
+  fsdp_cpu_ram_efficient_loading: true            # Efficient model loading
+  fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP   # Auto-wrap policy for transformer layers
+  fsdp_transformer_layer_cls_to_wrap: LlamaDecoderLayer  # Replace with your model's layer class
+  fsdp_state_dict_type: FULL_STATE_DICT           # Save full state dict for checkpoints
+  fsdp_activation_checkpointing: true             # When using FSDP full shard, instead of using `gradient_checkpointing` in TrainingArguments, please use `activation_checkpointing` in `fsdp_config`. The former introduces a redundant AllGather operation in backward pass. Reference: https://github.com/huggingface/transformers/issues/30404
+  fsdp_sharding_strategy: FULL_SHARD              # Equivalent to DeepSpeed Zero Stage 3
+  fsdp_backward_prefetch: BACKWARD_PRE            # Prefetching strategy
+
+special_tokens:
+  bos_token: <|begin_of_text|>
+  eos_token: <|end_of_text|>
+  pad_token: <|end_of_text|>
