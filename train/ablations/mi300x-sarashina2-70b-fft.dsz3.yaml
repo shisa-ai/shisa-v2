@@ -11,7 +11,7 @@ wandb_project: shisa-v2
 wandb_entity: augmxnt
 wandb_name: mi300x-shisa-v1-sarashina2-70b
 
-chat_template: llama3
+chat_template: alpaca
 
 datasets:
   - path: augmxnt/ultra-orca-boros-en-ja-v1
@@ -23,7 +23,7 @@ datasets:
 
 dataset_prepared_path: last_run_prepared
 val_set_size: 0.05
-output_dir: ./outputs/shisa-v1-llama3.1-70b
+output_dir: ./outputs/shisa-v1-sharashina2-70b
 
 sequence_len: 4096
 sample_packing: true
@@ -49,6 +49,7 @@ gradient_checkpointing_kwargs:
   use_reentrant: false
 early_stopping_patience:
 resume_from_checkpoint:
+auto_resume_from_checkpoints: true
 logging_steps: 1
 xformers_attention:
 flash_attention: true
