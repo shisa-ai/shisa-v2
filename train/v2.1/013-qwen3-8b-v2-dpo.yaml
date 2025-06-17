@@ -1,0 +1,123 @@
+# train w/ shisa-ai/shisa-v1-athenev2-reannotated-filtered
+
+# base_model: /data/outputs/011-qwen3-8b-v2-sft
+base_model: shisa-ai/011-qwen3-8b-v2-sft
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+# User Liger
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+rl: dpo
+datasets:
+  # - path: shisa-ai/shisa-v2-405b-ultrafeedback-armorm
+  - path: shisa-ai/deepseekv3-ultrafeedback-armorm-dpo
+    split: train
+    type: chat_template.default
+    field_messages: "conversations"
+    field_chosen: "chosen"
+    field_rejected: "rejected"
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      user: ["user"]
+      assistant: ["assistant"]
+      system: ["system"]
+  - path: shisa-ai/shisa-v2-roleplaying-dpo
+    split: train
+    type: chat_template.default
+    field_messages: "conversations"
+    field_chosen: "chosen"
+    field_rejected: "rejected"
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      user: ["user"]
+      assistant: ["assistant"]
+      system: ["system"]
+  - path: shisa-ai/translation-no-extra-text-dpo-dataset
+    split: train
+    type: chat_template.default
+    field_messages: "conversations"
+    field_chosen: "chosen"
+    field_rejected: "rejected"
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      user: ["user"]
+      assistant: ["assistant"]
+      system: ["system"]
+  - path: shisa-ai/shisa-v2-instruction-following-dpo
+    split: train[:50%]
+    type: chat_template.default
+    field_messages: "conversations"
+    field_chosen: "chosen"
+    field_rejected: "rejected"
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      user: ["user"]
+      assistant: ["assistant"]
+      system: ["system"]
+dataset_prepared_path: last_run_prepared
+val_set_size: 0
+output_dir: ./outputs/013-qwen3-8b-v2-dpo
+
+sequence_len: 4096
+sample_packing: false # has to be false for RLHF
+pad_to_sequence_len: true
+
+# marginal difference
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_project: shisa-v2.1
+wandb_entity: augmxnt
+wandb_name: 013-qwen3-8b-v2-dpo
+
+# This LR is for 4 nodes * 8 GPU * 4 mbs = 128 gbs
+gradient_accumulation_steps: 2
+micro_batch_size: 16
+num_epochs: 1
+optimizer: paged_adamw_8bit
+lr_scheduler: constant
+learning_rate: 5e-7
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+early_stopping_patience:
+resume_from_checkpoint:
+logging_steps: 1
+xformers_attention:
+flash_attention: false
+
+warmup_steps: 25
+evals_per_epoch: 0
+eval_table_size:
+saves_per_epoch: 0
+save_total_limit: 1 # Only store a single checkpoint
+debug:
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
