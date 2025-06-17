@@ -1,0 +1,205 @@
+# train w/ shisa-ai/shisa-v1-athenev2-reannotated-filtered
+
+base_model: meta-llama/Meta-Llama-3.1-8B-Instruct
+model_type: LlamaForCausalLM
+tokenizer_type: AutoTokenizer
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+# User Liger
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: llama3
+datasets:
+  - path: shisa-ai/shisa-v2-2025-6-17-sharegpt
+    # type: sharegpt deprecated
+    type: chat_template
+    field_messages: conversations
+    message_field_role: from
+    message_field_content: value
+  - path: shisa-ai/shisa-v2-roleplaying-sft
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - gpt
+        - model
+        - assistant
+      user:
+        - human
+        - user
+    roles_to_train: ["assistant"]
+  - path: shisa-ai/translation_expanded_master_set_filtered
+    split: train[:25%]
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - gpt
+        - model
+        - assistant
+      user:
+        - human
+        - user
+    roles_to_train: ["assistant"]
+  - path: shisa-ai/rewild-set
+    split: train[:5%]
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - gpt
+        - model
+        - assistant
+      user:
+        - human
+        - user
+    roles_to_train: ["assistant"]
+  - path: shisa-ai/magpie-ultra-set
+    split: train[:8%]
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - gpt
+        - model
+        - assistant
+      user:
+        - human
+        - user
+    roles_to_train: ["assistant"]
+  - path: shisa-ai/magpie-advanced-questions-set
+    split: train[:8%]
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - gpt
+        - model
+        - assistant
+      user:
+        - human
+        - user
+    roles_to_train: ["assistant"]
+  - path: shisa-ai/japan-magpie-set
+    split: train
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - gpt
+        - model
+        - assistant
+      user:
+        - human
+        - user
+    roles_to_train: ["assistant"]
+  - path: shisa-ai/shisa-v2-instruction-following-sft
+    split: train[:50%]
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - gpt
+        - model
+        - assistant
+      user:
+        - human
+        - user
+    roles_to_train: ["assistant"]
+    
+dataset_prepared_path: last_run_prepared
+val_set_size: 0
+output_dir: /data/outputs/022-llama3.1-8b-v2new
+
+sequence_len: 8192
+sample_packing: true
+pad_to_sequence_len: true
+
+# marginal difference
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_project: shisa-v2.1
+wandb_entity: augmxnt
+wandb_name: 022-llama3.1-8b-v2new
+
+# 128 = 4 H200 * 4 mbs * 8 gas
+# 128 = 4 H200 * 16 mbs * 2 gas
+world_size: 8
+gradient_accumulation_steps: 1
+micro_batch_size: 16
+num_epochs: 3
+optimizer: paged_adamw_8bit
+lr_scheduler: linear
+learning_rate: 1e-5
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+early_stopping_patience:
+resume_from_checkpoint:
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_steps: 100
+evals_per_epoch: 0
+eval_table_size:
+saves_per_epoch: 0
+save_total_limit: 1 # Only store a single checkpoint
+debug:
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
+  pad_token: <|end_of_text|>
