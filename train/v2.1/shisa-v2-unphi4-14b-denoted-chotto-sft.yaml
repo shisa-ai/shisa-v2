@@ -1,0 +1,92 @@
+# train w/ shisa-ai/shisa-v1-athenev2-reannotated-filtered
+
+base_model: shisa-ai/shisa-v2-unphi4-14b-denoted
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+# User Liger
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+datasets:
+  - path: shisa-ai/chotto_translation_set_sft
+    type: chat_template
+    field_messages: conversations
+    message_field_role: from
+    message_field_content: value
+  - path: shisa-ai/shisa-v2-roleplaying-sft
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - gpt
+        - model
+        - assistant
+      user:
+        - human
+        - user
+    roles_to_train: ["assistant"]
+    
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.0
+output_dir: /data/outputs/shisa-v2-unphi4-14b-denoted-chotto-sft
+
+
+sequence_len: 8192
+sample_packing: true
+pad_to_sequence_len: true
+
+# marginal difference
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_project: shisa-v2.1
+wandb_entity: augmxnt
+wandb_name: shisa-v2-unphi4-14b-denoted-chotto-sft
+
+# unphi4: 7.5e-6 @ gbs 128 = 1node * 4gpu * 8mbs  * 4gas
+gradient_accumulation_steps: 4
+micro_batch_size: 8
+num_epochs: 3
+optimizer: adamw_torch_4bit
+lr_scheduler: linear
+learning_rate: 7.5e-6
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+early_stopping_patience:
+resume_from_checkpoint:
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_steps: 100
+evals_per_epoch: 0
+eval_table_size:
+saves_per_epoch: 1
+save_total_limit: 4
+debug:
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
