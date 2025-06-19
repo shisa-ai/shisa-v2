@@ -9,8 +9,9 @@ export NCCL_ASYNC_ERROR_HANDLING=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 MODEL="Qwen/Qwen3-30B-A3B"
-DATA="shisa-ai/shisa-v2-sft-shuffled"
-OUT="019-qwen3-30b-a3b-v2-sft"
+DATA="shisa-ai/shisa-v2new-sft-shuffled"
+# DATA="shisa-ai/shisa-v2-sft-shuffled"
+OUT="019-qwen3-30b-a3b-v2new-sft"
 
 # GBS = 256 - LR = 5e-7 constant
 # GBS = 128 - LR = 2.5e-7
