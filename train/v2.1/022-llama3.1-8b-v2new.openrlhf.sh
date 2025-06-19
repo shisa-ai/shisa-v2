@@ -6,7 +6,7 @@ export WANDB_PROJECT="shisa-v2.1"           # keep your old project
 export HF_HUB_ENABLE_HF_TRANSFER=1
 export NCCL_ASYNC_ERROR_HANDLING=1
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 MODEL="meta-llama/Meta-Llama-3.1-8B-Instruct"
 DATA="shisa-ai/shisa-v2new-sft-shuffled"
