@@ -19,7 +19,7 @@ liger_fused_linear_cross_entropy: true
 
 chat_template: tokenizer_default
 datasets:
-  - path: shisa-ai/shisa-v2-sharegpt
+  - path: shisa-ai/shisa-v2-2025-6-17-sharegpt
     type: chat_template
     field_messages: conversations
     message_property_mappings:
