@@ -28,7 +28,7 @@ deepspeed --num_gpus 8 --module openrlhf.cli.train_sft \
   --input_key conversations \
   --apply_chat_template \
   --bf16 \
-  --zero_stage      3 \
+  --zero_stage      2 \
   --aux_loss_coef  0.001 \
   --optimizer  paged_adamw_8bit \
   --gradient_checkpointing \
@@ -41,7 +41,7 @@ deepspeed --num_gpus 8 --module openrlhf.cli.train_sft \
   --max_epochs      3 \
   --learning_rate   1.63e-5 \
   --lr_warmup_ratio 0.05 \
-  --save_steps      -1 \
+  --save_steps      2826 \
   --save_path       "$OUT" \
   --logging_steps   1 \
   --eval_steps -1 \
