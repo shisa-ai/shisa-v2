@@ -21,12 +21,12 @@
   },
  "moe": {
     "enabled": true,
-    "num_experts":          128,      
-    "top_k":                8,        
-    "expert_parallel_size": 2,       
-    "use_tutel":            true,     
-    "capacity_factor":      1.0,      
-    "moe_param_group":      true,     
+    "num_experts":          128,
+    "top_k":                8,
+    "expert_parallel_size": 2,
+    "use_tutel":            true,
+    "capacity_factor":      1.25,
+    "moe_param_group":      true,
     "noisy_gate_policy":    "Jitter"
   },
   "gradient_accumulation_steps": "auto",
