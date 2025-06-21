@@ -28,21 +28,22 @@ deepspeed --num_gpus 8 --module openrlhf.cli.train_sft \
   --input_key conversations \
   --apply_chat_template \
   --bf16 \
-  --zero_stage      2 \
+  --zero_stage      2moe \
   --aux_loss_coef  0.001 \
-  --optimizer  paged_adamw_8bit \
+  --optimizer  adamw_torch_4bit \
   --gradient_checkpointing \
   --flash_attn \
   --use_liger_kernel \
   --train_batch_size       128 \
-  --micro_train_batch_size 16 \
+  --micro_train_batch_size 1 \
   --max_len 8192 \
   --packing_samples \
   --max_epochs      3 \
   --learning_rate   1.63e-5 \
   --lr_warmup_ratio 0.05 \
-  --save_steps      2826 \
-  --save_path       "$OUT" \
+  --save_path       "/data/outputs/$OUT" \
+  --ckpt_path       "/data/checkpoint/$OUT" \
+  --save_hf_ckpt \
   --logging_steps   1 \
   --eval_steps -1 \
   --eval_dataset "" \
@@ -51,3 +52,6 @@ deepspeed --num_gpus 8 --module openrlhf.cli.train_sft \
   --wandb_org        augmxnt \
   --wandb_project    shisa-v2.1 \
   --wandb_run_name   "$OUT"
+
+#  --save_steps      2826 \  - mbs 8
+#  --save_steps      11304 \ - mbs 4
