@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  vllm:
+    image: rocm/vllm:latest
+    # equivalent of -it
+    stdin_open: true
+    tty: true
+
+    # keep container ephemeral (closest analogue to --rm)
+    restart: "no"
+
+    # host-level sharing
+    network_mode: "host"   # --network=host
+    ipc: "host"            # --ipc=host
+    privileged: true       # --privileged
+
+    # capabilities
+    cap_add:
+      - CAP_SYS_ADMIN
+      - SYS_PTRACE         # two separate --cap-add flags
+
+    # security opts
+    security_opt:
+      - seccomp=unconfined
+
+    # devices
+    devices:
+      - /dev/kfd
+      - /dev/dri
+      - /dev/mem
+
+    # supplemental groups
+    group_add:
+      - render
+
+    volumes:
+      # host_path : container_path [:options]
+      - /home/hotaisle/.cache/huggingface:/root/.cache/huggingface:rw
+      - /home/hotaisle/train:/root/train:rw
