@@ -48,7 +48,7 @@ deepspeed --num_gpus 8 --module openrlhf.cli.train_sft \
   --save_path       "/data/outputs/$OUT" \
   --ckpt_path       "/data/checkpoint/$OUT" \
   --save_hf_ckpt \
-  --save_steps      5652 \
+  --save_steps      2826 \
   --logging_steps   1 \
   --eval_steps -1 \
   --eval_dataset "" \
