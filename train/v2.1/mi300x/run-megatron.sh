@@ -12,7 +12,7 @@ if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     exec docker exec -it ${CONTAINER_NAME} bash
 else
     echo "Starting new container ${CONTAINER_NAME} from ${IMAGE}..."
-    exec docker run --gpus all --rm -it \
+    exec docker run --rm -it \
         --name ${CONTAINER_NAME} \
         --ipc=host --network=host --privileged \
         --device=/dev/kfd --device=/dev/dri --device=/dev/mem \
