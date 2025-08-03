@@ -4,7 +4,7 @@ set -euo pipefail
 CONTAINER_NAME=megatron-lm
 IMAGE="rocm/megatron-lm:latest"
 
-TRAIN_DIR="$HOME/shisa-v2/train/v2.1/mi300x"
+TRAIN_DIR="$HOME/shisa-v2/train/v2.1/mi300x/megatron"
 HF_CACHE_DIR="$HOME/.cache/huggingface"
 
 if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
