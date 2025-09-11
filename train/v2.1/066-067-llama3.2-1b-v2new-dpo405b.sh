@@ -17,7 +17,7 @@ SFT_MBS=16
 DPO_CKPT=${DPO_CKPT:-"067-llama3.2-1b-v2new-dpo405b"}
 DPO_DATA="shisa-ai/shisa-v2-dpo405b-shuffled"
 DPO_LR=${DPO_LR:-3.16e-7}
-DPO_MBS=16
+DPO_MBS=8
 
 main() {
   # Run training stages
@@ -28,7 +28,7 @@ main() {
 
 run_sft() {
   echo "Starting SFT training..."
-  deepspeed --num_gpus 1 --module openrlhf.cli.train_sft \
+  deepspeed --num_gpus 2 --module openrlhf.cli.train_sft \
     --pretrain        "$ORIG_MODEL" \
     --dataset         "$SFT_DATA" \
     --input_key conversations \
