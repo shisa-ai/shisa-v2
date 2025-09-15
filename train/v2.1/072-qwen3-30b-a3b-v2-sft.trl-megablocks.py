@@ -23,10 +23,8 @@ from trl import SFTTrainer, SFTConfig
 # Configuration - adjust these for different systems
 # ============================================================================
 
-# Hardware configuration
-NUM_GPUS = 2  # Will be auto-detected by accelerate
-TOTAL_VRAM = 384  # 2x 192GB MI300X
-GPU_DEVICES = "0,1"
+# Hardware configuration - Single GPU
+TOTAL_VRAM = 192  # 192GB MI300X
 
 # Model and data configuration
 MODEL = "Qwen/Qwen3-30B-A3B-Instruct-2507"
@@ -34,15 +32,12 @@ DATASET_PATH = "./sft.shisa-v2.jsonl"  # Generated from generate-new-sft.py
 OUT = "072-qwen3-30b-a3b-v2-sft-trl-megablocks"
 CACHED_DATASET_PATH = "./cached_formatted_dataset"  # Cache for processed dataset
 
-# Training hyperparameters (scale with GPU count)
-GLOBAL_BATCH_SIZE = 128
-LR = 1.63e-5  # Based on GBS=128 from original script
-MAX_LEN = 1024
+# Training hyperparameters - Single GPU
+BATCH_SIZE = 2  # Can be larger on single MI300X with 192GB
+GRAD_ACCUMULATION_STEPS = 64  # 2 * 64 = 128 effective batch size
+LR = 1.63e-5  # Based on effective batch size of 128
+MAX_LEN = 8192
 EPOCHS = 3
-
-# Calculate per-device batch size based on GPU count and memory
-# For 192GB GPUs with MoE, we can use larger batch sizes
-PER_DEVICE_BATCH_SIZE = 2
 
 # ============================================================================
 # Environment setup and validation
@@ -53,18 +48,11 @@ def setup_environment():
     os.environ["WANDB_ENTITY"] = "augmxnt"
     os.environ["WANDB_PROJECT"] = "shisa-v2.1"
     os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
-    os.environ["NCCL_ASYNC_ERROR_HANDLING"] = "1"
-    # Let accelerate handle device assignment
-    # os.environ["CUDA_VISIBLE_DEVICES"] = GPU_DEVICES
-
-
-def _rank_prefix() -> str:
-    r = os.environ.get("RANK") or os.environ.get("LOCAL_RANK")
-    return f"[rank{r}]" if r is not None else "[rank-]"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use first GPU
 
 
 def log(msg: str) -> None:
-    print(f"{_rank_prefix()} {msg}", flush=True)
+    print(msg, flush=True)
 
 
 def log_versions_and_accelerate_config() -> None:
@@ -198,39 +186,19 @@ def log_model_randomness(model: Any) -> None:
 
 
 def validate_batch_configuration():
-    """Validate batch size configuration"""
-    # Calculate and validate gradient accumulation steps
-    effective_batch_size = NUM_GPUS * PER_DEVICE_BATCH_SIZE
-    grad_accumulation_steps = GLOBAL_BATCH_SIZE // effective_batch_size
+    """Validate batch size configuration for single GPU"""
+    effective_batch_size = BATCH_SIZE * GRAD_ACCUMULATION_STEPS
     
-    # Validation checks
-    if grad_accumulation_steps * effective_batch_size != GLOBAL_BATCH_SIZE:
-        print(f"ERROR: Global batch size ({GLOBAL_BATCH_SIZE}) is not evenly divisible by effective batch size ({effective_batch_size})")
-        print(f"  Effective batch size = NUM_GPUS ({NUM_GPUS}) × PER_DEVICE_BATCH_SIZE ({PER_DEVICE_BATCH_SIZE}) = {effective_batch_size}")
-        print(f"  Try adjusting PER_DEVICE_BATCH_SIZE or GLOBAL_BATCH_SIZE to make them compatible")
-        print()
-        print("Suggested fixes:")
-        print(f"  - Change GLOBAL_BATCH_SIZE to: {grad_accumulation_steps * effective_batch_size} (rounds down)")
-        print(f"  - Or change GLOBAL_BATCH_SIZE to: {(grad_accumulation_steps + 1) * effective_batch_size} (rounds up)")
-        sys.exit(1)
-    
-    if grad_accumulation_steps < 1:
-        print(f"ERROR: Gradient accumulation steps ({grad_accumulation_steps}) must be at least 1")
-        print(f"  Your per-device batch size ({PER_DEVICE_BATCH_SIZE}) × num GPUs ({NUM_GPUS}) = {effective_batch_size}")
-        print(f"  This exceeds your global batch size ({GLOBAL_BATCH_SIZE})")
-        print(f"  Try reducing PER_DEVICE_BATCH_SIZE or increasing GLOBAL_BATCH_SIZE")
-        sys.exit(1)
-    
-    print("Training Configuration:")
-    print(f"  GPUs: {NUM_GPUS}")
-    print(f"  Global Batch Size: {GLOBAL_BATCH_SIZE}")
-    print(f"  Per Device Batch Size: {PER_DEVICE_BATCH_SIZE}")
+    print("Training Configuration (Single GPU):")
+    print(f"  Batch Size: {BATCH_SIZE}")
+    print(f"  Gradient Accumulation Steps: {GRAD_ACCUMULATION_STEPS}")
     print(f"  Effective Batch Size: {effective_batch_size}")
-    print(f"  Gradient Accumulation Steps: {grad_accumulation_steps}")
     print(f"  Learning Rate: {LR}")
+    print(f"  Max Length: {MAX_LEN}")
+    print(f"  Epochs: {EPOCHS}")
     print()
     
-    return grad_accumulation_steps
+    return GRAD_ACCUMULATION_STEPS
 
 def load_and_format_dataset(tokenizer, debug_mode=False, refresh_cache=False):
     """Load dataset and format with caching support"""
@@ -364,7 +332,7 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         MODEL,
         torch_dtype=torch.bfloat16,
-        attn_implementation="sdpa",
+        attn_implementation="flash_attention_2",
         trust_remote_code=True,
         # Enable router logits and set aux loss coefficient for MoE
         output_router_logits=True,
@@ -387,7 +355,7 @@ def main():
     # Configure training arguments
     training_args = SFTConfig(
         output_dir=output_dir,
-        per_device_train_batch_size=PER_DEVICE_BATCH_SIZE,
+        per_device_train_batch_size=BATCH_SIZE,
         gradient_accumulation_steps=grad_accumulation_steps,
         num_train_epochs=EPOCHS,
         learning_rate=LR,
@@ -399,12 +367,11 @@ def main():
         gradient_checkpointing=True,
 
         # Standard optimizations
-        ddp_find_unused_parameters=False,
         remove_unused_columns=True,
         dataloader_drop_last=True,
         
         # Sequence length
-        max_seq_length=MAX_LEN,
+        max_length=MAX_LEN,
         packing=True,
         
         # Logging and saving
@@ -421,11 +388,11 @@ def main():
         report_to=["wandb"],
         run_name=OUT,
         
-        # FSDP - will be configured via accelerate config
+        # Single GPU - no distributed training needed
     )
     log(
         f"Training args: gradient_checkpointing={training_args.gradient_checkpointing}, "
-        f"max_seq_length={training_args.max_seq_length}, packing={training_args.packing}, "
+        f"max_length={training_args.max_length}, packing={training_args.packing}, "
         f"per_device_train_batch_size={training_args.per_device_train_batch_size}, "
         f"grad_accumulation_steps={training_args.gradient_accumulation_steps}"
     )
@@ -449,34 +416,6 @@ def main():
     
     print(f"Training completed! Model saved to {output_dir}")
 
-def run_with_accelerate():
-    """Run the training with accelerate launcher"""
-    print("Starting TRL MegaBlocks training with FSDP...")
-
-    # Run with accelerate using config file
-    cmd = [
-        "accelerate", "launch",
-        "--config_file", "accelerate_config.yaml",
-        "--main_process_port", "0",  # Use next available port
-        __file__
-    ]
-
-    # Pass through any command line arguments
-    cmd.extend(sys.argv[1:])
-
-    result = subprocess.run(cmd)
-
-    if result.returncode == 0:
-        print("Training completed!")
-    else:
-        print(f"Training failed with return code {result.returncode}")
-        sys.exit(result.returncode)
-
 if __name__ == "__main__":
-    # Check if we're being called by accelerate or directly
-    if "RANK" in os.environ or "LOCAL_RANK" in os.environ:
-        # Called by accelerate launcher, run main training
-        main()
-    else:
-        # Called directly, launch with accelerate
-        run_with_accelerate()
+    # Run training directly (no accelerate launcher needed for single GPU)
+    main()
