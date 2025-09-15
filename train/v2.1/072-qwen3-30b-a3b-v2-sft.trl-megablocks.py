@@ -33,8 +33,8 @@ OUT = "072-qwen3-30b-a3b-v2-sft-trl-megablocks"
 CACHED_DATASET_PATH = "./cached_formatted_dataset"  # Cache for processed dataset
 
 # Training hyperparameters - Single GPU
-BATCH_SIZE = 2  # Can be larger on single MI300X with 192GB
-GRAD_ACCUMULATION_STEPS = 64  # 2 * 64 = 128 effective batch size
+BATCH_SIZE = 1  # Can be larger on single MI300X with 192GB
+GRAD_ACCUMULATION_STEPS = 128  # 2 * 64 = 128 effective batch size
 LR = 1.63e-5  # Based on effective batch size of 128
 MAX_LEN = 8192
 EPOCHS = 3
