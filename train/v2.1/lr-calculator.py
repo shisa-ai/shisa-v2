@@ -72,8 +72,9 @@ def get_common_sizes():
     """Returns a list of common model parameter counts"""
     return [
         0.27e9,   # Gemma-3 270M
-        1e9,      # Llama 3.2 1B
-        3e9,      # Llama 3 3B
+        1e9,      # 1B
+        3e9,      # 3B
+        3.84e9,   # 4B
         8e9,      # Llama 3 8B
         12e9,     # Llama 3 12B
         14e9,     # Llama 3 14B
