@@ -4,17 +4,16 @@ set -eo pipefail
 export WANDB_ENTITY=augmxnt
 export WANDB_PROJECT="shisa-v2.1"           # keep your old project
 export HF_HUB_ENABLE_HF_TRANSFER=1
-export NCCL_ASYNC_ERROR_HANDLING=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TORCH_COMPILE=0
 
-export CUDA_VISIBLE_DEVICES=0,1
+# export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 # MODEL="Qwen/Qwen3-30B-A3B"
 MODEL="Qwen/Qwen3-30B-A3B-Instruct-2507"
 DATA="shisa-ai/shisa-v2new-sft-shuffled"
 # DATA="shisa-ai/shisa-v2-sft-shuffled"
-OUT="019-qwen3-30b-a3b-v2new-sft"
+OUT="073-qwen3-30b-a3b-v2new-sft.8xMI300X.dsz3"
 
 # GBS = 256 - LR = 5e-7 constant
 # GBS = 128 - LR = 2.5e-7
@@ -27,7 +26,7 @@ OUT="019-qwen3-30b-a3b-v2new-sft"
 # 14/2826 [17:16<36:13:38, 46.38s/it, gpt_loss=1.06, lr=tensor(5.3821e-07), aux_loss=8.45]
 # Slow - 36h / epoch ~= 300h = 900h for training run!
 
-deepspeed --num_gpus 2 --module openrlhf.cli.train_sft \
+deepspeed --num_gpus 8 --module openrlhf.cli.train_sft \
   --pretrain        "$MODEL" \
   --dataset         "$DATA" \
   --input_key conversations \
@@ -41,26 +40,32 @@ deepspeed --num_gpus 2 --module openrlhf.cli.train_sft \
   --attn_implementation flash_attention_2 \
   --use_liger_kernel \
   --train_batch_size       128 \
-  --micro_train_batch_size 1 \
-  --grad_accum_dtype bf16
-  --max_len 4096 \
+  --micro_train_batch_size 8 \
+  --grad_accum_dtype bf16 \
+  --max_len 8192 \
   --packing_samples \
   --max_epochs      3 \
   --learning_rate   1.63e-5 \
   --lr_warmup_ratio 0.05 \
   --save_path       "/data/outputs/$OUT" \
   --ckpt_path       "/data/checkpoint/$OUT" \
+  --load_checkpoint \
   --save_hf_ckpt \
-  --save_steps      2826 \
+  --save_steps      5652 \
   --logging_steps   1 \
   --eval_steps -1 \
   --eval_dataset "" \
   --overlap_comm \
   --use_wandb       True \
-  --wandb_org        augmxnt \
-  --wandb_project    shisa-v2.1 \
+  --wandb_org        "$WANDB_ENTITY" \
+  --wandb_project    "$WANDB_PROJECT" \
   --wandb_run_name   "$OUT"
 
+# 41GB weights
+# msb=8 OK - 166GB - 31h @ step 22+
+# 5652/epoch
+# msb=4 OK - 120GB - 45h @ step 24? (24h was sadly cut off at grad_accum_dtype
+# 10732/epoch
 # TORCH_COMPILE=0
 # --zero_stage      2moe \ - keeps oom
 #  --save_steps      2826 \  - mbs 8
