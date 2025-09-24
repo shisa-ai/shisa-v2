@@ -1,0 +1,17 @@
+TODO: stabilize 074 dsz2moe run on MI300X
+
+1. Confirm Tutel is the blocker
+   - Enable comm tracing (`TORCH_NCCL_TRACE_BUFFER_SIZE=134217728`, `NCCL_DEBUG=INFO`) and re-run the dsz2moe script to capture which rank dies before the timed-out all_reduce.
+   - Re-run with `--zero_stage 2` (no MoE) to verify the job progresses when Tutel is not involved.
+
+2. Disable Tutel on ROCm
+   - Edit `openrlhf/openrlhf/utils/deepspeed/deepspeed_utils.py` to set the MoE block's `use_tutel` flag to `False` when running on MI300/ROCm (or simply remove Tutel usage for now).
+   - Keep `expert_parallel_size` compatible with MI300 (start with 1) until Tutel-on-ROCm is validated.
+
+3. Re-test
+   - After the patch, rerun the 074 script; confirm the first SFT step completes and NCCL watchdog no longer triggers.
+   - If stable, drop the tracing env vars to reduce log spam.
+
+Notes:
+- Tutel's GPU kernels target CUDA; on ROCm the helper either falls back to inefficient collectives or hangs, leading to the observed watchdog timeouts.
+- The rest of the configuration (TorchAO optimizer, ZeRO++ settings) appears unrelated to the hang.
