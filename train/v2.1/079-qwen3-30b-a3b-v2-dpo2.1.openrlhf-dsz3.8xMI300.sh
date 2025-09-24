@@ -11,7 +11,7 @@ export TORCH_COMPILE=0
 
 # MODEL="Qwen/Qwen3-30B-A3B"
 MODEL="073-qwen3-30b-a3b-v2new-sft.8xMI300X.dsz3"
-OUT="078-qwen3-30b-a3b-v2new-dpo405b.8xMI300X.dsz3"
+OUT="079-qwen3-30b-a3b-v2new-sft-v2.1-dpo.8xMI300X.dsz3"
 DATA="dpo.shisa-v2.1.jsonl"
 
 DPO_LR=${DPO_LR:-2.04e-7}
