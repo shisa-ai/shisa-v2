@@ -4,6 +4,7 @@ set -eo pipefail
 export WANDB_ENTITY=augmxnt
 export WANDB_PROJECT="shisa-v2.1"           # keep your old project
 export HF_HUB_ENABLE_HF_TRANSFER=1
+export NCCL_ASYNC_ERROR_HANDLING=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TORCH_COMPILE=0
 
@@ -57,8 +58,8 @@ deepspeed --num_gpus 8 --module openrlhf.cli.train_sft \
   --eval_dataset "" \
   --overlap_comm \
   --use_wandb       True \
-  --wandb_org        augmxnt \
-  --wandb_project    shisa-v2.1 \
+  --wandb_org        "$WANDB_ENTITY" \
+  --wandb_project    "$WANDB_PROJECT" \
   --wandb_run_name   "$OUT"
 
 # ZeRO-2 est usage on MI300X (192GB):
