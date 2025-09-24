@@ -1,4 +1,17 @@
+# Temp
 *.jsonl
+*.swp
 cached_formatted_dataset/
-openrlhf/
+cached_formatted_dataset_debug/
 wandb/
+
+# Other repos
+aotriton/
+bitsandbytes/
+megablocks/
+megablocks.kernels-community/
+openrlhf/
+trl/
+
+# axolotl
+examples/
