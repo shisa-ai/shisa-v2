@@ -1,0 +1,7 @@
+*.json
+*.jsonl
+*.xz
+
+data/
+checkpoints/
+megablocks/

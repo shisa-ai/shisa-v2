@@ -12,6 +12,7 @@ LOSS_WEIGHT="${6:-0.1}"
 BATCH_SIZE="${7:-32}"
 
 SAVE_PATH="/workspace/project/checkpoints/${EXP_DIR}"
+DATA_DIR="${DATA_DIR:-/workspace/project/data}"
 
 echo "=== MegaBlocks GPT-2 125M MoE Training (ROCm 7.0) ==="
 echo "Experiment directory: ${EXP_DIR}"
@@ -19,6 +20,7 @@ echo "Training steps: ${TRAINING_STEPS}"
 echo "Number of experts: ${NUM_EXPERTS}"
 echo "Top-K: ${TOP_K}"
 echo "Save path: ${SAVE_PATH}"
+echo "Data directory: ${DATA_DIR}"
 echo ""
 
 # Create experiment directory in project space
@@ -77,9 +79,9 @@ TRAINING_ARGUMENTS="\
 --init-method-std 0.01"
 
 # Data paths
-VOCAB_FILE="/workspace/project/gpt2-vocab.json"
-MERGE_FILE="/workspace/project/gpt2-merges.txt"
-DATA_PATH="/workspace/project/my-gpt2_text_document"
+VOCAB_FILE="${DATA_DIR}/gpt2-vocab.json"
+MERGE_FILE="${DATA_DIR}/gpt2-merges.txt"
+DATA_PATH="${DATA_DIR}/my-gpt2_text_document"
 
 DATA_ARGUMENTS="\
 --data-path ${DATA_PATH} \
