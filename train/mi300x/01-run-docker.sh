@@ -14,6 +14,7 @@ echo "Starting interactive container..."
 docker run -it --rm \
   --privileged \
   -v "${CURRENT_DIR}":/workspace/project \
+  -v /root/.cache:/root/.cache \
   --network=host \
   --device=/dev/kfd \
   --device=/dev/dri \
