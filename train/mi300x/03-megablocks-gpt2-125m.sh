@@ -5,16 +5,19 @@
 
 TRAINING_STEPS=2000
 SAVE_PATH="/workspace/project/checkpoints"
-DATA_DIR="${DATA_DIR:-/workspace/project/data}"
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+DATA_DIR="${DATA_DIR:-${SCRIPT_DIR}/data}"
+DATA_PREFIX="${DATA_PREFIX:-sft.shisa-v2.1_text_document}"
 
 echo "=== MegaBlocks GPT-2 125M Training (ROCm 7.0) ==="
 echo "Training steps: ${TRAINING_STEPS}"
 echo "Save path: ${SAVE_PATH}"
 echo "Data directory: ${DATA_DIR}"
+echo "Data prefix: ${DATA_PREFIX}"
 echo ""
 
 # Create checkpoints directory in project space
-mkdir -p ${SAVE_PATH}
+mkdir -p "${SAVE_PATH}"
 
 ##
 ### Pre-training for GPT2 125M parameter.
@@ -52,7 +55,7 @@ TRAINING_ARGUMENTS="\
 # Data paths
 VOCAB_FILE="${DATA_DIR}/gpt2-vocab.json"
 MERGE_FILE="${DATA_DIR}/gpt2-merges.txt"
-DATA_PATH="${DATA_DIR}/my-gpt2_text_document"
+DATA_PATH="${DATA_DIR}/${DATA_PREFIX}"
 
 DATA_ARGUMENTS="\
 --data-path ${DATA_PATH} \
