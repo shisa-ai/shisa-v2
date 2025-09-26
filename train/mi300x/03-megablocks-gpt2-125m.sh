@@ -173,7 +173,7 @@ TRAINING_START_TIME=$(date +%s)
 cd /workspace/Megatron-LM
 
 torchrun ${DISTRIBUTED_ARGUMENTS} \
-       pretrain_gpt.py \
+       /workspace/project/run_pretrain_with_patch.py \
        ${MODEL_ARGUMENTS} \
        ${TRAINING_ARGUMENTS} \
        ${DATA_ARGUMENTS} \

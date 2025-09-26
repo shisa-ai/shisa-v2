@@ -1,7 +1,9 @@
 *.json
 *.jsonl
 *.xz
-
 data/
 checkpoints/
+wandb/
+
+# ext
 megablocks/
