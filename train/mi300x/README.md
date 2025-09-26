@@ -5,19 +5,15 @@ docker pull rocm/7.0:rocm7.0_pytorch_training_instinct_20250915
 
 ## Megatron Checkpoint Fix Patch
 
-Training runs on ROCm PyTorch 2.5 hit a checkpoint failure inside Megatron-LM’s async saver (`_write_item() missing 1 required positional argument: 'serialization_format'`). This repository ships a small patch that forwards the new argument everywhere Megatron wraps `_write_item`.
+Training runs on ROCm PyTorch 2.5 hit a checkpoint failure inside Megatron-LM’s async saver (`_write_item() missing 1 required positional argument: 'serialization_format'`). This repository ships both a runtime monkeypatch (`megatron_checkpoint_patch.py`, automatically loaded via `run_pretrain_with_patch.py`) and a static patch file. Use whichever workflow fits your environment.
 
 ### Files touched when the patch is applied
 - `megatron/core/dist_checkpointing/strategies/filesystem_async.py`
 - `tests/unit_tests/dist_checkpointing/test_async_save.py`
 
-### Patch location
-- `patch-megatron-checkpoint-save.patch` (root of this repo)
+### Runtime monkeypatch
+- `megatron_checkpoint_patch.py` (imported by `run_pretrain_with_patch.py`)
+- Nothing to do—just launch training via `./03-...` or `./04-...` and the fix is active.
 
-### Applying the patch
-```bash
-cd /workspace/Megatron-LM   # Path inside the training container
-git apply /workspace/project/patch-megatron-checkpoint-save.patch
-```
-
-Rebuild or rerun training afterwards—the async checkpoint writer will now pass `serialization_format`, and checkpoint saves complete without the mid-run crash.
+### Optional static patch
+- `patch-megatron-checkpoint-save.patch` (root of this repo) remains available if you prefer modifying Megatron sources directly (`git apply` inside `/workspace/Megatron-LM`).
