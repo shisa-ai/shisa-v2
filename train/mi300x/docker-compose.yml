@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  megablocks-training:
+    image: rocm/7.0:rocm7.0_pytorch_training_instinct_20250915
+    container_name: megablocks_training
+    privileged: true
+    network_mode: host
+    stdin_open: true
+    tty: true
+
+    # GPU and device access
+    devices:
+      - /dev/kfd
+      - /dev/dri
+
+    # Additional capabilities and security settings
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+
+    # IPC and memory settings
+    ipc: host
+    shm_size: 16G
+
+    # Volume mounts
+    volumes:
+      - .:/workspace/project                   # Current directory to container workspace
+      - /root/.cache:/root/.cache              # Cache directory for pip/huggingface
+      - /root/.netrc:/root/.netrc:ro           # Wandb token and other credentials
+
+    # Working directory
+    working_dir: /workspace/project
+
+    # Environment variables
+    environment:
+      - PYTHONPATH=/workspace/Megatron-LM:$PYTHONPATH
+      - CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+      - WANDB_PROJECT=shisa-v2-megablocks
+      - WANDB_LOG_MODEL=false
+      - WANDB_WATCH=false
+
+    # Command to keep container running
+    command: /bin/bash -c "while true; do sleep 3600; done"
+
+    # Restart policy
+    restart: unless-stopped
+
+  # Additional service for Jupyter notebook (optional)
+  notebook:
+    image: rocm/7.0:rocm7.0_pytorch_training_instinct_20250915
+    container_name: rocm7.0_training
+    privileged: true
+    network_mode: host
+
+    # GPU and device access
+    devices:
+      - /dev/kfd
+      - /dev/dri
+
+    # Volume mounts
+    volumes:
+      - .:/workspace/project
+      - /root/.cache:/root/.cache
+      - /root/.netrc:/root/.netrc:ro
+
+    # Working directory
+    working_dir: /workspace/project
+
+    # Environment variables
+    environment:
+      - PYTHONPATH=/workspace/Megatron-LM:$PYTHONPATH
+
+    # Restart policy
+    restart: unless-stopped
+
+networks:
+  default:
+    name: megablocks-network
