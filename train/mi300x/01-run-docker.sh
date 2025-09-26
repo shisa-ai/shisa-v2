@@ -29,4 +29,11 @@ docker run -it --rm \
   -e WANDB_LOG_MODEL=false \
   -e WANDB_WATCH=false \
   rocm/7.0:rocm7.0_pytorch_training_instinct_20250915 \
-  /bin/bash
+  /bin/bash -c "
+    echo 'Installing MegaBlocks...'
+    cd /workspace/project/megablocks && python3 setup.py develop --no-deps
+    echo 'MegaBlocks installation complete!'
+    echo 'Starting interactive shell...'
+    cd /workspace/project
+    exec /bin/bash
+  "

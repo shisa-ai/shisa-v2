@@ -41,8 +41,15 @@ services:
       - WANDB_LOG_MODEL=false
       - WANDB_WATCH=false
 
-    # Command to keep container running
-    command: /bin/bash -c "while true; do sleep 3600; done"
+    # Command to install MegaBlocks and keep container running
+    command: /bin/bash -c "
+      echo 'Installing MegaBlocks...' &&
+      cd /workspace/project/megablocks &&
+      python3 setup.py develop --no-deps &&
+      echo 'MegaBlocks installation complete!' &&
+      cd /workspace/project &&
+      while true; do sleep 3600; done
+    "
 
     # Restart policy
     restart: unless-stopped
