@@ -114,8 +114,10 @@ def parse_args():
                        help='Only count samples without generating full dataset')
     parser.add_argument('--rerun', action='store_true',
                        help='Regenerate dataset even if files already exist')
-    parser.add_argument('--workers', type=int, default=min(8, multiprocessing.cpu_count()//2),
-                       help=f'Number of worker processes (default: min(8, {multiprocessing.cpu_count()//2}))')
+    parser.add_argument('--workers', type=int, default=min(80, multiprocessing.cpu_count()),
+                       help=f'Number of worker processes (default: min(64, {multiprocessing.cpu_count()}))')
+    parser.add_argument('--debug', type=int, default=0,
+                       help='Debug mode: only process first N conversations (0 = all, >0 = debug with N conversations)')
     return parser.parse_args()
 
 def count_dataset_samples(dataset_config):
@@ -151,10 +153,17 @@ def main():
         if not args.count:
             return
 
+    # Determine if we're in debug mode
+    debug_mode = args.debug > 0
+
     print("--- Starting Dataset Processing for MegaBlocks ---")
     print(f"Workers: {args.workers}")
     print(f"Count only: {args.count}")
     print(f"Rerun: {args.rerun}")
+    if debug_mode:
+        print(f"🐛 DEBUG MODE: Processing only {args.debug} conversations")
+    else:
+        print("Processing FULL dataset (all 376k+ conversations)")
 
     # Setup output directory
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -311,10 +320,19 @@ def main():
         print(f"ERROR during concatenation: {e}")
         return
 
+    # Debug mode: limit dataset size for testing
+    if debug_mode:
+        print(f"\n🐛 DEBUG MODE: Limiting to first {args.debug} conversations")
+        final_ds = final_ds.select(range(min(args.debug, len(final_ds))))
+        print(f"Debug dataset size: {len(final_ds)} examples")
+
     # 2. Global Shuffle (Optional but recommended)
-    print(f"Shuffling the final dataset with seed {GLOBAL_SEED}...")
-    final_ds = final_ds.shuffle(seed=GLOBAL_SEED)
-    print("Shuffling complete.")
+    if not debug_mode:  # Skip shuffle in debug mode for speed
+        print(f"Shuffling the final dataset with seed {GLOBAL_SEED}...")
+        final_ds = final_ds.shuffle(seed=GLOBAL_SEED)
+        print("Shuffling complete.")
+    else:
+        print("Skipping shuffle in debug mode")
 
     # 3. Setup Megatron tokenization and save as binary format
     print("\n--- Setting up Megatron tokenizer ---")
@@ -341,32 +359,63 @@ def main():
     skipped_count = 0
     total_tokens = 0
 
-    print("Tokenizing and writing binary data...")
-    for i, example in enumerate(tqdm(final_ds)):
-        conversations = example.get(DEFAULT_CONVERSATION_FIELD, [])
+    # Process in batches with multiprocessing for tokenization
 
-        if not conversations:
-            skipped_count += 1
-            continue
+    print("Tokenizing conversations in parallel batches...")
+    # Calculate optimal batch size for high-thread systems
+    # With 160 threads available, we want smaller batches for better distribution
+    target_conversations_per_batch = min(200, max(50, len(final_ds) // (args.workers * 10)))
+    batch_size = max(1, target_conversations_per_batch)
+    total_batches = (len(final_ds) + batch_size - 1) // batch_size
+    print(f"Using batch size: {batch_size}, workers: {args.workers}, total batches: {total_batches}")
+    estimated_throughput = args.workers * 150  # Conservative estimate
+    print(f"Expected throughput: ~{estimated_throughput:,} conversations/second (vs 150 sequential)")
+    expected_time_minutes = len(final_ds) / estimated_throughput / 60
+    print(f"Estimated completion time: ~{expected_time_minutes:.1f} minutes (vs ~{len(final_ds)/150/60:.1f} minutes sequential)")
 
-        # Apply chat template
-        formatted_text = apply_chat_template(conversations)
+    # Prepare batches
+    batches = []
+    for i in range(0, len(final_ds), batch_size):
+        batch_data = []
+        for j in range(i, min(i + batch_size, len(final_ds))):
+            conversations = final_ds[j].get(DEFAULT_CONVERSATION_FIELD, [])
+            batch_data.append((j, conversations))
+        batches.append(batch_data)
 
-        if not formatted_text:
-            skipped_count += 1
-            continue
+    print(f"Created {len(batches)} batches for processing")
 
-        # Tokenize the formatted text
-        token_ids = tokenizer.tokenize(formatted_text)
+    # Process batches in parallel
+    from concurrent.futures import ProcessPoolExecutor, as_completed
 
-        if len(token_ids) > 0:
-            # Add end-of-document token
-            token_ids.append(tokenizer.eod)
+    all_results = {}
+    with ProcessPoolExecutor(max_workers=args.workers) as executor:
+        # Submit all batches
+        future_to_batch = {executor.submit(tokenize_batch, batch): i for i, batch in enumerate(batches)}
 
-            # Add to builder
-            builder.add_document(token_ids, [len(token_ids)])
-            total_tokens += len(token_ids)
-            processed_count += 1
+        # Collect results with progress bar
+        with tqdm(total=len(batches), desc="Processing batches") as pbar:
+            for future in as_completed(future_to_batch):
+                batch_idx = future_to_batch[future]
+                try:
+                    batch_results = future.result()
+                    # Store results by original index
+                    for orig_idx, token_ids, status in batch_results:
+                        all_results[orig_idx] = (token_ids, status)
+                except Exception as e:
+                    print(f"Batch {batch_idx} failed with error: {e}")
+                pbar.update(1)
+
+    # Write results to binary file in original order
+    print("Writing tokenized data to binary file...")
+    for i in tqdm(range(len(final_ds)), desc="Writing to binary"):
+        if i in all_results:
+            token_ids, status = all_results[i]
+            if status == "success" and token_ids:
+                builder.add_document(token_ids, [len(token_ids)])
+                total_tokens += len(token_ids)
+                processed_count += 1
+            else:
+                skipped_count += 1
         else:
             skipped_count += 1
 
@@ -514,6 +563,62 @@ def load_dataset_conversation(
 
     print(f"  Finished {dataset_name}. Resulting examples: {len(ds)}")
     return ds
+
+# ==============================================================================
+# Multiprocessing Helper Functions
+# ==============================================================================
+
+def tokenize_batch(batch_data):
+    """Tokenize a batch of conversations in parallel worker"""
+    import os
+    import sys
+    import io
+    os.environ['TOKENIZERS_PARALLELISM'] = 'false'  # Avoid tokenizer warnings in multiprocessing
+
+    batch_results = []
+    # Setup tokenizer in each worker process (suppress verbose output)
+    try:
+        # Suppress tokenizer build messages in workers
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
+
+        local_tokenizer, _ = setup_megatron_tokenizer()
+
+        # Restore output
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+    except Exception as e:
+        # Make sure to restore output even if there's an error
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+        return [(idx, None, f"tokenizer_setup_error: {str(e)}") for idx, _ in batch_data]
+
+    for idx, conversations in batch_data:
+        if not conversations:
+            batch_results.append((idx, None, "empty_conversations"))
+            continue
+
+        # Apply chat template
+        formatted_text = apply_chat_template(conversations)
+        if not formatted_text:
+            batch_results.append((idx, None, "empty_formatted_text"))
+            continue
+
+        # Tokenize the formatted text
+        try:
+            token_ids = local_tokenizer.tokenize(formatted_text)
+            if len(token_ids) > 0:
+                # Add end-of-document token
+                token_ids.append(local_tokenizer.eod)
+                batch_results.append((idx, token_ids, "success"))
+            else:
+                batch_results.append((idx, None, "empty_tokens"))
+        except Exception as e:
+            batch_results.append((idx, None, f"tokenization_error: {str(e)}"))
+
+    return batch_results
 
 # ==============================================================================
 # Entry Point
