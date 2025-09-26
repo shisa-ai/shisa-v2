@@ -7,7 +7,7 @@
 EPOCHS=3
 GLOBAL_BATCH_SIZE=512
 EVALS_PER_EPOCH=${EVALS_PER_EPOCH:-4}
-SAVE_PATH="/workspace/project/checkpoints"
+SAVE_PATH="/workspace/shisa-v2.1/checkpoints"
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 DATA_DIR="${DATA_DIR:-${SCRIPT_DIR}/data}"
 DATA_PREFIX="${DATA_PREFIX:-sft.shisa-v2.1_text_document}"
@@ -173,7 +173,7 @@ TRAINING_START_TIME=$(date +%s)
 cd /workspace/Megatron-LM
 
 torchrun ${DISTRIBUTED_ARGUMENTS} \
-       /workspace/project/run_pretrain_with_patch.py \
+       /workspace/shisa-v2.1/run_pretrain_with_patch.py \
        ${MODEL_ARGUMENTS} \
        ${TRAINING_ARGUMENTS} \
        ${DATA_ARGUMENTS} \

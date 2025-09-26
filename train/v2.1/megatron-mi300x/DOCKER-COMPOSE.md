@@ -72,8 +72,8 @@ docker-compose exec megablocks-training python3 --version
 docker-compose exec megablocks-training rocm-smi
 
 # Run training scripts
-docker-compose exec megablocks-training /bin/bash -c "cd /workspace/project && ./03-megablocks-gpt2-125m.sh"
-docker-compose exec megablocks-training /bin/bash -c "cd /workspace/project && ./04-megablocks-moe-gpt2-125m.sh my_experiment"
+docker-compose exec megablocks-training /bin/bash -c "cd /workspace/shisa-v2.1 && ./03-megablocks-gpt2-125m.sh"
+docker-compose exec megablocks-training /bin/bash -c "cd /workspace/shisa-v2.1 && ./04-megablocks-moe-gpt2-125m.sh my_experiment"
 ```
 
 ## Training Workflow with Docker Compose
@@ -93,7 +93,7 @@ docker-compose ps
 ```bash
 # Access container and generate data
 docker-compose exec megablocks-training /bin/bash -c "
-    cd /workspace/project &&
+    cd /workspace/shisa-v2.1 &&
     python3 02-generate.sft.shisa-v2.1-megablocks.py
 "
 ```
@@ -103,13 +103,13 @@ docker-compose exec megablocks-training /bin/bash -c "
 ```bash
 # Standard GPT-2 125M training
 docker-compose exec megablocks-training /bin/bash -c "
-    cd /workspace/project &&
+    cd /workspace/shisa-v2.1 &&
     ./03-megablocks-gpt2-125m.sh
 "
 
 # MoE training with custom parameters
 docker-compose exec megablocks-training /bin/bash -c "
-    cd /workspace/project &&
+    cd /workspace/shisa-v2.1 &&
     ./04-megablocks-moe-gpt2-125m.sh my_moe_experiment 128 2 2 0.05 16
 "
 ```
@@ -118,13 +118,13 @@ docker-compose exec megablocks-training /bin/bash -c "
 
 ```bash
 # Follow training logs in real-time
-docker-compose exec megablocks-training tail -f /workspace/project/checkpoints/train.log
+docker-compose exec megablocks-training tail -f /workspace/shisa-v2.1/checkpoints/train.log
 
 # Monitor GPU usage
 docker-compose exec megablocks-training watch -n 1 rocm-smi
 
 # Check training progress
-docker-compose exec megablocks-training ls -la /workspace/project/checkpoints/
+docker-compose exec megablocks-training ls -la /workspace/shisa-v2.1/checkpoints/
 ```
 
 ## Environment Variables
@@ -157,7 +157,7 @@ The following directories are automatically mounted:
 
 | Host Path | Container Path | Purpose |
 |-----------|----------------|---------|
-| `.` (current dir) | `/workspace/project` | Scripts, data, checkpoints |
+| `.` (current dir) | `/workspace/shisa-v2.1` | Scripts, data, checkpoints |
 | `/root/.cache` | `/root/.cache` | pip/HuggingFace cache |
 | `/root/.netrc` | `/root/.netrc` | Wandb token & credentials |
 
@@ -175,8 +175,8 @@ Training steps completed: 1500
 Epochs completed: 3
 Total samples processed: 768000
 Samples per second: 94
-Checkpoints saved to: /workspace/project/checkpoints
-Training log: /workspace/project/checkpoints/train.log
+Checkpoints saved to: /workspace/shisa-v2.1/checkpoints
+Training log: /workspace/shisa-v2.1/checkpoints/train.log
 ```
 
 ### Enhanced Wandb Integration
@@ -212,7 +212,7 @@ docker-compose up -d
 
 ```bash
 # Check data files exist
-docker-compose exec megablocks-training ls -la /workspace/project/data/
+docker-compose exec megablocks-training ls -la /workspace/shisa-v2.1/data/
 
 # Verify Megatron installation
 docker-compose exec megablocks-training ls -la /workspace/Megatron-LM/

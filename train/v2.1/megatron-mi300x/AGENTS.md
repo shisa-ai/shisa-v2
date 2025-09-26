@@ -15,7 +15,7 @@ Use the provided script to start an interactive container:
 ```
 
 This script:
-- Mounts the current directory (`/root/shisa-v2/train/v2.1/megatron-mi300x`) to `/workspace/project` inside the container
+- Mounts the current directory (`/root/shisa-v2/train/v2.1/megatron-mi300x`) to `/workspace/shisa-v2.1` inside the container
 - Provides GPU access via `/dev/kfd` and `/dev/dri` devices
 - Sets up proper permissions and shared memory
 - Uses the ROCm 7.0 PyTorch training image optimized for MI300X
@@ -57,13 +57,13 @@ docker exec -it rocm7_container_1727340123 /bin/bash
 docker exec rocm7_container_1727340123 rocm-smi
 
 # Run training script
-docker exec rocm7_container_1727340123 /bin/bash -c "cd /workspace/project && ./03-megablocks-gpt2-125m.sh"
+docker exec rocm7_container_1727340123 /bin/bash -c "cd /workspace/shisa-v2.1 && ./03-megablocks-gpt2-125m.sh"
 ```
 
 ### File System Access
 
 - **Host Path**: `/root/shisa-v2/train/v2.1/megatron-mi300x`
-- **Container Path**: `/workspace/project`
+- **Container Path**: `/workspace/shisa-v2.1`
 - All files are synchronized between host and container
 - Scripts, data, and checkpoints are accessible from both environments
 
@@ -90,7 +90,7 @@ Run dense GPT-2 125M training:
 
 ```bash
 # From container
-cd /workspace/project
+cd /workspace/shisa-v2.1
 ./03-megablocks-gpt2-125m.sh
 ```
 
@@ -100,7 +100,7 @@ Run Mixture of Experts training:
 
 ```bash
 # From container
-cd /workspace/project
+cd /workspace/shisa-v2.1
 
 # Default configuration
 ./04-megablocks-moe-gpt2-125m.sh
@@ -133,20 +133,20 @@ The number of samples is automatically extracted from the `.idx` file header.
 ### Logs
 
 Training logs are saved to:
-- Standard: `/workspace/project/checkpoints/train.log`
-- MoE: `/workspace/project/checkpoints/<experiment_name>/train.log`
+- Standard: `/workspace/shisa-v2.1/checkpoints/train.log`
+- MoE: `/workspace/shisa-v2.1/checkpoints/<experiment_name>/train.log`
 
 ### Checkpoints
 
 Checkpoints are saved to:
-- Standard: `/workspace/project/checkpoints/`
-- MoE: `/workspace/project/checkpoints/<experiment_name>/`
+- Standard: `/workspace/shisa-v2.1/checkpoints/`
+- MoE: `/workspace/shisa-v2.1/checkpoints/<experiment_name>/`
 
 ### Real-time Monitoring
 
 ```bash
 # Monitor training progress
-docker exec <container_name> tail -f /workspace/project/checkpoints/train.log
+docker exec <container_name> tail -f /workspace/shisa-v2.1/checkpoints/train.log
 
 # Check GPU utilization
 docker exec <container_name> watch -n 1 rocm-smi
@@ -162,7 +162,7 @@ docker exec <container_name> watch -n 1 rocm-smi
 
 ### File Management
 
-1. **Work from `/workspace/project`** inside containers
+1. **Work from `/workspace/shisa-v2.1`** inside containers
 2. **Edit scripts from the host** for easier version control
 3. **Monitor disk space** as checkpoints can be large
 
@@ -181,7 +181,7 @@ docker exec <container_name> watch -n 1 rocm-smi
 docker logs <container_name>
 
 # Permission issues
-docker exec <container_name> ls -la /workspace/project
+docker exec <container_name> ls -la /workspace/shisa-v2.1
 
 # GPU not accessible
 docker exec <container_name> rocm-smi
@@ -217,10 +217,10 @@ Then execute commands using the full container name:
 
 ```bash
 # Run training scripts
-docker exec rocm7_container_1758826316 bash /workspace/project/04-megablocks-moe-gpt2-125m.sh
+docker exec rocm7_container_1758826316 bash /workspace/shisa-v2.1/04-megablocks-moe-gpt2-125m.sh
 
 # Run test scripts
-docker exec rocm7_container_1758826316 python /workspace/project/test-epoch-calculation.py
+docker exec rocm7_container_1758826316 python /workspace/shisa-v2.1/test-epoch-calculation.py
 
 # Interactive debugging
 docker exec -it rocm7_container_1758826316 bash
@@ -234,7 +234,7 @@ The training configuration depends heavily on dataset size. Use the test script 
 
 ```bash
 # Check dataset statistics and epoch calculations
-docker exec rocm7_container_1758826316 python /workspace/project/test-epoch-calculation.py
+docker exec rocm7_container_1758826316 python /workspace/shisa-v2.1/test-epoch-calculation.py
 ```
 
 This script shows:
@@ -270,13 +270,13 @@ This script shows:
 - "No such file or directory" errors
 - Scripts not found
 
-**Solution:** Files are mounted at `/workspace/project/`, not `/workspace/train/mi300x/`
+**Solution:** Files are mounted at `/workspace/shisa-v2.1/`, not `/workspace/train/mi300x/`
 
 ```bash
 # Correct paths in container:
-docker exec <container> ls /workspace/project/
-docker exec <container> python /workspace/project/test-epoch-calculation.py
-docker exec <container> bash /workspace/project/04-megablocks-moe-gpt2-125m.sh
+docker exec <container> ls /workspace/shisa-v2.1/
+docker exec <container> python /workspace/shisa-v2.1/test-epoch-calculation.py
+docker exec <container> bash /workspace/shisa-v2.1/04-megablocks-moe-gpt2-125m.sh
 ```
 
 ### Testing Workflow
@@ -288,16 +288,16 @@ Before running full training:
 docker ps
 
 # 2. Test dataset and epoch calculation
-docker exec <container_name> python /workspace/project/test-epoch-calculation.py
+docker exec <container_name> python /workspace/shisa-v2.1/test-epoch-calculation.py
 
 # 3. Verify training configuration shows reasonable number of steps
 # Look for output like: "Training steps: XXX" where XXX > 0
 
 # 4. Run training with monitoring
-docker exec <container_name> bash /workspace/project/04-megablocks-moe-gpt2-125m.sh &
+docker exec <container_name> bash /workspace/shisa-v2.1/04-megablocks-moe-gpt2-125m.sh &
 
 # 5. Monitor progress (from another terminal)
-docker exec <container_name> tail -f /workspace/project/checkpoints/moe_experiment/train.log
+docker exec <container_name> tail -f /workspace/shisa-v2.1/checkpoints/moe_experiment/train.log
 ```
 
 ## Example Session
@@ -310,16 +310,16 @@ docker exec <container_name> tail -f /workspace/project/checkpoints/moe_experime
 docker ps
 
 # 3. Test dataset configuration
-docker exec rocm7_container_1758826316 python /workspace/project/test-epoch-calculation.py
+docker exec rocm7_container_1758826316 python /workspace/shisa-v2.1/test-epoch-calculation.py
 
 # 4. If tests show adequate samples, generate data (if not already done)
-docker exec rocm7_container_1758826316 python /workspace/project/02-generate.sft.shisa-v2.1-megablocks.py
+docker exec rocm7_container_1758826316 python /workspace/shisa-v2.1/02-generate.sft.shisa-v2.1-megablocks.py
 
 # 5. Start training
-docker exec rocm7_container_1758826316 bash /workspace/project/03-megablocks-gpt2-125m.sh
+docker exec rocm7_container_1758826316 bash /workspace/shisa-v2.1/03-megablocks-gpt2-125m.sh
 
 # 6. Monitor from host (new terminal)
-docker exec rocm7_container_1758826316 tail -f /workspace/project/checkpoints/train.log
+docker exec rocm7_container_1758826316 tail -f /workspace/shisa-v2.1/checkpoints/train.log
 ```
 
 This workflow ensures reproducible training with proper resource management and monitoring capabilities.
