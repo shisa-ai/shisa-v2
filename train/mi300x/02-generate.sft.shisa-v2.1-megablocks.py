@@ -4,6 +4,8 @@ import json
 import random
 import time
 import multiprocessing
+import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import numpy as np
 from datasets import Features, Sequence, Value, load_dataset, concatenate_datasets, Dataset
 from tqdm import tqdm
@@ -74,20 +76,20 @@ def setup_megatron_tokenizer():
     vocab_file = os.path.join(DATA_DIR, 'gpt2-vocab.json')
     merge_file = os.path.join(DATA_DIR, 'gpt2-merges.txt')
 
-    # Download if not exists
+    # Download if not exists using urllib instead of wget
     if not os.path.exists(vocab_file):
         print("Downloading GPT-2 vocab.json...")
-        import wget
+        import urllib.request
         os.makedirs(DATA_DIR, exist_ok=True)
-        wget.download('https://huggingface.co/openai-community/gpt2/resolve/main/vocab.json', vocab_file)
-        print()
+        urllib.request.urlretrieve('https://huggingface.co/openai-community/gpt2/resolve/main/vocab.json', vocab_file)
+        print(f"Downloaded to {vocab_file}")
 
     if not os.path.exists(merge_file):
         print("Downloading GPT-2 merges.txt...")
-        import wget
+        import urllib.request
         os.makedirs(DATA_DIR, exist_ok=True)
-        wget.download('https://huggingface.co/openai-community/gpt2/resolve/main/merges.txt', merge_file)
-        print()
+        urllib.request.urlretrieve('https://huggingface.co/openai-community/gpt2/resolve/main/merges.txt', merge_file)
+        print(f"Downloaded to {merge_file}")
 
     args = parser.parse_args([
         '--vocab-file', vocab_file,
@@ -105,14 +107,54 @@ def setup_megatron_tokenizer():
 
     return build_tokenizer(args), args
 
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description='Generate SFT dataset for MegaBlocks training')
+    parser.add_argument('--count', action='store_true',
+                       help='Only count samples without generating full dataset')
+    parser.add_argument('--rerun', action='store_true',
+                       help='Regenerate dataset even if files already exist')
+    parser.add_argument('--workers', type=int, default=min(8, multiprocessing.cpu_count()//2),
+                       help=f'Number of worker processes (default: min(8, {multiprocessing.cpu_count()//2}))')
+    return parser.parse_args()
+
+def count_dataset_samples(dataset_config):
+    """Count samples in a dataset configuration without loading full data"""
+    try:
+        print(f"Counting samples in {dataset_config['dataset_path']} ({dataset_config['split']})...")
+        ds = load_dataset(dataset_config['dataset_path'], split=dataset_config['split'])
+        count = len(ds)
+        print(f"  -> {count:,} samples")
+        return dataset_config['dataset_path'], count
+    except Exception as e:
+        print(f"  ERROR counting {dataset_config['dataset_path']}: {e}")
+        return dataset_config['dataset_path'], 0
+
 def main():
     """
     Main function to define datasets, process them, merge, shuffle, and save as Megatron binary format.
     """
+    args = parse_args()
     overall_start_time = time.time()
     processed_datasets = [] # List to hold the results of loading functions
 
+    # Check if files already exist and handle --rerun flag
+    output_prefix = os.path.join(DATA_DIR, OUTPUT)
+    output_bin_file = f"{output_prefix}_text_document.bin"
+    output_idx_file = f"{output_prefix}_text_document.idx"
+
+    if os.path.exists(output_bin_file) and os.path.exists(output_idx_file) and not args.rerun:
+        print(f"Dataset files already exist:")
+        print(f"  - {output_bin_file}")
+        print(f"  - {output_idx_file}")
+        print("Use --rerun to regenerate or --count to just count samples.")
+        if not args.count:
+            return
+
     print("--- Starting Dataset Processing for MegaBlocks ---")
+    print(f"Workers: {args.workers}")
+    print(f"Count only: {args.count}")
+    print(f"Rerun: {args.rerun}")
 
     # Setup output directory
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -180,7 +222,27 @@ def main():
         },
     ]
 
+    # Handle --count mode
+    if args.count:
+        print("\n--- Counting Samples in Each Dataset ---")
+        total_samples = 0
+
+        # Use multiprocessing for faster counting
+        with ProcessPoolExecutor(max_workers=min(args.workers, len(datasets_config))) as executor:
+            future_to_config = {executor.submit(count_dataset_samples, dsc): dsc for dsc in datasets_config}
+
+            for future in as_completed(future_to_config):
+                dataset_path, count = future.result()
+                total_samples += count
+
+        print(f"\n=== Total Sample Count ===")
+        print(f"Total samples across all datasets: {total_samples:,}")
+        print(f"Estimated training steps (3 epochs, batch size 512): {(total_samples * 3) // 512:,}")
+        return
+
+    # Regular processing mode
     for dsc in datasets_config:
+        print(f"\nProcessing {dsc['dataset_path']} ({dsc['split']})...")
         ds = None
         ds = load_dataset_conversation(
             dataset_path = dsc['dataset_path'],
@@ -193,7 +255,10 @@ def main():
             },
         )
         if ds:
+            print(f"  Loaded {len(ds):,} examples")
             processed_datasets.append(ds)
+        else:
+            print(f"  Failed to load dataset")
 
     def rebuild_dataset_with_clean_schema(dataset):
         """
