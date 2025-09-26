@@ -1,0 +1,72 @@
+diff --git a/megatron/core/dist_checkpointing/strategies/filesystem_async.py b/megatron/core/dist_checkpointing/strategies/filesystem_async.py
+index 19115cd22..3fc2cf7f6 100644
+--- a/megatron/core/dist_checkpointing/strategies/filesystem_async.py
++++ b/megatron/core/dist_checkpointing/strategies/filesystem_async.py
+@@ -15,7 +15,7 @@ import psutil
+ import torch
+ from torch import multiprocessing as mp
+ from torch.distributed.checkpoint import FileSystemWriter
+-from torch.distributed.checkpoint.filesystem import DEFAULT_SUFFIX, _StoragePrefix, _write_item
++from torch.distributed.checkpoint.filesystem import DEFAULT_SUFFIX, _StoragePrefix, _write_item, SerializationFormat
+ from torch.distributed.checkpoint.planner import SavePlan, SavePlanner, WriteItem, WriteItemType
+ from torch.distributed.checkpoint.storage import WriteResult
+ from torch.futures import Future
+@@ -167,12 +167,12 @@ class FileSystemWriterAsync(FileSystemWriter):
+         """
+         if not self.write_buckets:
+             return None, ()
+-        return (self.write_preloaded_data_multiproc, (self.write_buckets, self.results_queue))
++        return (self.write_preloaded_data_multiproc, (self.write_buckets, self.results_queue, self.serialization_format))
+ 
+     @staticmethod
+     @_disable_gc()
+     def write_preloaded_data_multiproc(
+-        write_buckets: List[WriteBucket], global_results_queue: mp.Queue
++        write_buckets: List[WriteBucket], global_results_queue: mp.Queue, serialization_format: SerializationFormat
+     ) -> None:
+         """
+         Performs saving data to storage with multiple processes.
+@@ -207,7 +207,7 @@ class FileSystemWriterAsync(FileSystemWriter):
+                 p_list.append(
+                     ctx.Process(
+                         target=FileSystemWriterAsync.write_preloaded_data,
+-                        args=(i, write_bucket, local_results_queue, count_queue, True),
++                        args=(i, write_bucket, local_results_queue, count_queue, True, serialization_format),
+                     )
+                 )
+             except Exception as e:
+@@ -266,6 +266,7 @@ class FileSystemWriterAsync(FileSystemWriter):
+         results_queue: mp.SimpleQueue,
+         count_queue: mp.JoinableQueue,
+         use_fsync: bool,
++        serialization_format: SerializationFormat,
+     ) -> None:
+         """
+         Performs actual data saving to storage.
+@@ -287,11 +288,11 @@ class FileSystemWriterAsync(FileSystemWriter):
+             file_name, storage_key, (bytes_data, tensor_data) = write_bucket
+             with open(file_name, "wb") as stream:
+                 for write_item, data in bytes_data:
+-                    local_results.append(_write_item(stream, data, write_item, storage_key))
++                    local_results.append(_write_item(stream, data, write_item, storage_key, serialization_format))
+ 
+                 for write_item, tensor in tensor_data:
+                     assert tensor.is_cpu
+-                    local_results.append(_write_item(stream, tensor, write_item, storage_key))
++                    local_results.append(_write_item(stream, tensor, write_item, storage_key, serialization_format))
+ 
+                 if use_fsync:
+                     os.fsync(stream.fileno())
+diff --git a/tests/unit_tests/dist_checkpointing/test_async_save.py b/tests/unit_tests/dist_checkpointing/test_async_save.py
+index 681b50146..63b4d55fa 100755
+--- a/tests/unit_tests/dist_checkpointing/test_async_save.py
++++ b/tests/unit_tests/dist_checkpointing/test_async_save.py
+@@ -13,7 +13,7 @@ from tests.unit_tests.dist_checkpointing import TempNamedDir
+ from tests.unit_tests.test_utilities import Utils
+ 
+ 
+-def write_data_os_err_mock_fn(local_proc_idx, write_bucket, results_queue, count_queue, use_fsync):
++def write_data_os_err_mock_fn(local_proc_idx, write_bucket, results_queue, count_queue, use_fsync, serialization_format):
+     """Raises an error on worker #2 during storage save"""
+     try:
+         if local_proc_idx == 2:
