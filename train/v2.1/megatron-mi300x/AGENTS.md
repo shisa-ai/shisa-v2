@@ -15,7 +15,7 @@ Use the provided script to start an interactive container:
 ```
 
 This script:
-- Mounts the current directory (`/root/shisa-v2/train/mi300x`) to `/workspace/project` inside the container
+- Mounts the current directory (`/root/shisa-v2/train/v2.1/megatron-mi300x`) to `/workspace/project` inside the container
 - Provides GPU access via `/dev/kfd` and `/dev/dri` devices
 - Sets up proper permissions and shared memory
 - Uses the ROCm 7.0 PyTorch training image optimized for MI300X
@@ -62,7 +62,7 @@ docker exec rocm7_container_1727340123 /bin/bash -c "cd /workspace/project && ./
 
 ### File System Access
 
-- **Host Path**: `/root/shisa-v2/train/mi300x`
+- **Host Path**: `/root/shisa-v2/train/v2.1/megatron-mi300x`
 - **Container Path**: `/workspace/project`
 - All files are synchronized between host and container
 - Scripts, data, and checkpoints are accessible from both environments
