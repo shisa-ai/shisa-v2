@@ -11,6 +11,7 @@ CAPACITY_FACTOR="${3:-1}"
 TOP_K="${4:-1}"
 LOSS_WEIGHT="${5:-0.1}"
 BATCH_SIZE="${6:-32}"
+EVALS_PER_EPOCH=${EVALS_PER_EPOCH:-4}
 
 # Global batch size is fixed for this configuration, keep it in one place.
 GLOBAL_BATCH_SIZE=512
@@ -59,6 +60,8 @@ PY
     fi
     TOTAL_SAMPLES=$((NUM_SAMPLES * EPOCHS))
     TRAINING_STEPS=$(( (TOTAL_SAMPLES + GLOBAL_BATCH_SIZE - 1) / GLOBAL_BATCH_SIZE ))
+    EVAL_INTERVAL=$(( TRAINING_STEPS / (EPOCHS * EVALS_PER_EPOCH) ))
+    [[ ${EVAL_INTERVAL} -lt 1 ]] && EVAL_INTERVAL=1
     echo "Calculated training parameters:"
     echo "  - Sequence count: ${SEQUENCE_COUNT}"
     echo "  - Document count: ${DOCUMENT_COUNT}"
@@ -67,12 +70,15 @@ PY
     echo "  - Total samples (epochs * samples): ${TOTAL_SAMPLES}"
     echo "  - Global batch size: ${GLOBAL_BATCH_SIZE}"
     echo "  - Training steps (ceil): ${TRAINING_STEPS}"
+    echo "  - Evaluation interval (steps): ${EVAL_INTERVAL}"
 else
     echo "Warning: Data index file not found at ${DATA_IDX_FILE}"
     echo "Using default values"
     NUM_SAMPLES=10000
     TOTAL_SAMPLES=$((NUM_SAMPLES * EPOCHS))
     TRAINING_STEPS=$(( (TOTAL_SAMPLES + GLOBAL_BATCH_SIZE - 1) / GLOBAL_BATCH_SIZE ))
+    EVAL_INTERVAL=$(( TRAINING_STEPS / (EPOCHS * EVALS_PER_EPOCH) ))
+    [[ ${EVAL_INTERVAL} -lt 1 ]] && EVAL_INTERVAL=1
 fi
 
 echo "=== MegaBlocks GPT-2 125M MoE Training (ROCm 7.0) ==="
@@ -80,6 +86,7 @@ echo "Experiment directory: ${EXP_DIR}"
 echo "Epochs: ${EPOCHS}"
 echo "Training samples: ${TOTAL_SAMPLES}"
 echo "Training steps: ${TRAINING_STEPS}"
+echo "Eval interval (steps): ${EVAL_INTERVAL}"
 echo "Number of experts: ${NUM_EXPERTS}"
 echo "Top-K: ${TOP_K}"
 echo "Save path: ${SAVE_PATH}"
@@ -159,7 +166,7 @@ DATA_ARGUMENTS="\
 --vocab-file ${VOCAB_FILE} \
 --merge-file ${MERGE_FILE} \
 --make-vocab-size-divisible-by 1024 \
---split 969,30,1"
+--split 995,5,0"
 
 # Compute arguments - optimized for ROCm 7.0 MoE
 # Note: Using bf16 instead of fp16 for better stability on MI300X
@@ -178,19 +185,18 @@ CHECKPOINT_ARGUMENTS="\
 --save-interval ${SAVE_INTERVAL_SAMPLES} \
 --save ${SAVE_PATH}"
 
-# Evaluation arguments
-EVALUATION_ARGUMENTS="\
---eval-iters 100 \
---log-interval 100 \
---eval-interval 1000"
+# Logging / evaluation arguments
+LOGGING_ARGUMENTS="\
+--log-interval 1 \
+--eval-interval ${EVAL_INTERVAL} \
+--eval-iters 20"
 
 # Wandb logging arguments
 WANDB_ARGUMENTS="\
 --wandb-project ${WANDB_PROJECT:-shisa-v2-megablocks} \
 --wandb-exp-name moe_${EXP_DIR}_$(date +%Y%m%d_%H%M%S) \
 --log-params-norm \
---log-num-zeros-in-grad \
---log-validation-ppl-to-tensorboard"
+--log-num-zeros-in-grad"
 
 echo "Starting MoE training..."
 echo "MoE Configuration:"
@@ -214,7 +220,7 @@ torchrun ${DISTRIBUTED_ARGUMENTS} \
        ${DATA_ARGUMENTS} \
        ${COMPUTE_ARGUMENTS} \
        ${CHECKPOINT_ARGUMENTS} \
-       ${EVALUATION_ARGUMENTS} \
+       ${LOGGING_ARGUMENTS} \
        ${WANDB_ARGUMENTS} |& tee ${SAVE_PATH}/train.log
 
 # Calculate and display training statistics
