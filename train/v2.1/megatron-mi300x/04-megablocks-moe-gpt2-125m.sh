@@ -5,7 +5,10 @@
 
 # Training configuration
 EPOCHS=3
-EXP_DIR="${1:-moe_experiment}"
+CHECKPOINT_ROOT="${CHECKPOINT_ROOT:-/workspace/shisa-v2.1/checkpoints}"
+RUN_TIMESTAMP="${RUN_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
+DEFAULT_EXP_DIR="moe_${RUN_TIMESTAMP}"
+EXP_DIR="${1:-${DEFAULT_EXP_DIR}}"
 NUM_EXPERTS="${2:-64}"
 CAPACITY_FACTOR="${3:-1}"
 TOP_K="${4:-1}"
@@ -16,7 +19,7 @@ EVALS_PER_EPOCH=${EVALS_PER_EPOCH:-4}
 # Global batch size is fixed for this configuration, keep it in one place.
 GLOBAL_BATCH_SIZE=512
 
-SAVE_PATH="/workspace/shisa-v2.1/checkpoints/${EXP_DIR}"
+SAVE_PATH="${CHECKPOINT_ROOT}/${EXP_DIR}"
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 DATA_DIR="${DATA_DIR:-${SCRIPT_DIR}/data}"
 DATA_PREFIX="${DATA_PREFIX:-sft.shisa-v2.1_text_document}"
@@ -82,7 +85,9 @@ else
 fi
 
 echo "=== MegaBlocks GPT-2 125M MoE Training (ROCm 7.0) ==="
+echo "Checkpoint root: ${CHECKPOINT_ROOT}"
 echo "Experiment directory: ${EXP_DIR}"
+echo "Pass a custom experiment name (first argument) or set RUN_TIMESTAMP to override the folder. Use OVERWRITE_CHECKPOINTS=1 to reuse an existing directory."
 echo "Epochs: ${EPOCHS}"
 echo "Training samples: ${TOTAL_SAMPLES}"
 echo "Training steps: ${TRAINING_STEPS}"
@@ -97,10 +102,17 @@ if [[ -n "${NUM_SAMPLES:-}" ]]; then
 fi
 echo ""
 
-# Create experiment directory in project space and clean if exists
+# Create experiment directory in project space
+mkdir -p "${CHECKPOINT_ROOT}"
 if [[ -d "${SAVE_PATH}" ]]; then
-    echo "Warning: Checkpoint directory ${SAVE_PATH} already exists. Removing..."
-    rm -rf "${SAVE_PATH}"
+    if [[ "${OVERWRITE_CHECKPOINTS:-0}" == "1" ]]; then
+        echo "Warning: Checkpoint directory ${SAVE_PATH} already exists. Removing because OVERWRITE_CHECKPOINTS=1..."
+        rm -rf "${SAVE_PATH}"
+    else
+        echo "ERROR: Checkpoint directory ${SAVE_PATH} already exists."
+        echo "       Pass a different experiment name or set OVERWRITE_CHECKPOINTS=1 to replace it."
+        exit 1
+    fi
 fi
 mkdir -p "${SAVE_PATH}"
 
@@ -252,4 +264,5 @@ echo ""
 echo "Usage for different configurations:"
 echo "  ./$(basename $0) experiment_name [experts] [capacity] [top_k] [loss_weight] [batch_size]"
 echo "  Example: ./$(basename $0) my_moe_run 128 2 2 0.05 16"
+echo "  Default run directory (no args): ${DEFAULT_EXP_DIR}"
 echo "  Note: Training steps are calculated automatically based on ${EPOCHS} epochs"

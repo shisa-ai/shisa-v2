@@ -7,7 +7,10 @@
 EPOCHS=3
 GLOBAL_BATCH_SIZE=512
 EVALS_PER_EPOCH=${EVALS_PER_EPOCH:-4}
-SAVE_PATH="/workspace/shisa-v2.1/checkpoints"
+CHECKPOINT_ROOT="${CHECKPOINT_ROOT:-/workspace/shisa-v2.1/checkpoints}"
+RUN_TIMESTAMP="${RUN_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
+RUN_NAME="${RUN_NAME:-dense_${RUN_TIMESTAMP}}"
+SAVE_PATH="${CHECKPOINT_ROOT}/${RUN_NAME}"
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 DATA_DIR="${DATA_DIR:-${SCRIPT_DIR}/data}"
 DATA_PREFIX="${DATA_PREFIX:-sft.shisa-v2.1_text_document}"
@@ -76,7 +79,10 @@ echo "Epochs: ${EPOCHS}"
 echo "Training samples: ${TOTAL_SAMPLES}"
 echo "Training steps: ${TRAINING_STEPS}"
 echo "Eval interval (steps): ${EVAL_INTERVAL}"
+echo "Checkpoint root: ${CHECKPOINT_ROOT}"
+echo "Run name: ${RUN_NAME}"
 echo "Save path: ${SAVE_PATH}"
+echo "Set RUN_NAME (or RUN_TIMESTAMP) to override the folder, or export OVERWRITE_CHECKPOINTS=1 to reuse an existing directory."
 echo "Data directory: ${DATA_DIR}"
 echo "Data prefix: ${DATA_PREFIX}"
 if [[ -n "${NUM_SAMPLES:-}" ]]; then
@@ -84,10 +90,17 @@ if [[ -n "${NUM_SAMPLES:-}" ]]; then
 fi
 echo ""
 
-# Create checkpoints directory in project space and clean if exists
+# Create checkpoints directory in project space
+mkdir -p "${CHECKPOINT_ROOT}"
 if [[ -d "${SAVE_PATH}" ]]; then
-    echo "Warning: Checkpoint directory ${SAVE_PATH} already exists. Removing..."
-    rm -rf "${SAVE_PATH}"
+    if [[ "${OVERWRITE_CHECKPOINTS:-0}" == "1" ]]; then
+        echo "Warning: Checkpoint directory ${SAVE_PATH} already exists. Removing because OVERWRITE_CHECKPOINTS=1..."
+        rm -rf "${SAVE_PATH}"
+    else
+        echo "ERROR: Checkpoint directory ${SAVE_PATH} already exists."
+        echo "       Use RUN_NAME to choose a unique destination or set OVERWRITE_CHECKPOINTS=1 to replace it."
+        exit 1
+    fi
 fi
 mkdir -p "${SAVE_PATH}"
 
