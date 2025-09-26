@@ -8,12 +8,12 @@ echo "Image: rocm/7.0:rocm7.0_pytorch_training_instinct_20250915"
 echo ""
 
 CURRENT_DIR=$(pwd)
-echo "Mounting current directory: ${CURRENT_DIR} -> /workspace/project"
+echo "Mounting current directory: ${CURRENT_DIR} -> /workspace/shisa-v2.1"
 echo "Starting interactive container..."
 
 docker run -it --rm \
   --privileged \
-  -v "${CURRENT_DIR}":/workspace/project \
+  -v "${CURRENT_DIR}":/workspace/shisa-v2.1 \
   -v /root/.cache:/root/.cache \
   -v /root/.netrc:/root/.netrc:ro \
   --network=host \
@@ -30,10 +30,9 @@ docker run -it --rm \
   -e WANDB_WATCH=false \
   rocm/7.0:rocm7.0_pytorch_training_instinct_20250915 \
   /bin/bash -c "
-    echo 'Installing MegaBlocks...'
-    cd /workspace/project/megablocks && python3 setup.py develop --no-deps
-    echo 'MegaBlocks installation complete!'
+    set -euo pipefail
+    cd /workspace/shisa-v2.1
+    ./install-megablocks.sh
     echo 'Starting interactive shell...'
-    cd /workspace/project
     exec /bin/bash
   "

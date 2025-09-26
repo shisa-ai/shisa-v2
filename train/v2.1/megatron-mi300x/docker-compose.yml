@@ -26,12 +26,12 @@ services:
 
     # Volume mounts
     volumes:
-      - .:/workspace/project                   # Current directory to container workspace
+      - .:/workspace/shisa-v2.1                # Current directory to container workspace
       - /root/.cache:/root/.cache              # Cache directory for pip/huggingface
       - /root/.netrc:/root/.netrc:ro           # Wandb token and other credentials
 
     # Working directory
-    working_dir: /workspace/project
+    working_dir: /workspace/shisa-v2.1
 
     # Environment variables
     environment:
@@ -43,11 +43,9 @@ services:
 
     # Command to install MegaBlocks and keep container running
     command: /bin/bash -c "
-      echo 'Installing MegaBlocks...' &&
-      cd /workspace/project/megablocks &&
-      python3 setup.py develop --no-deps &&
-      echo 'MegaBlocks installation complete!' &&
-      cd /workspace/project &&
+      set -euo pipefail
+      cd /workspace/shisa-v2.1
+      ./install-megablocks.sh
       while true; do sleep 3600; done
     "
 
@@ -68,12 +66,12 @@ services:
 
     # Volume mounts
     volumes:
-      - .:/workspace/project
+      - .:/workspace/shisa-v2.1
       - /root/.cache:/root/.cache
       - /root/.netrc:/root/.netrc:ro
 
     # Working directory
-    working_dir: /workspace/project
+    working_dir: /workspace/shisa-v2.1
 
     # Environment variables
     environment:
