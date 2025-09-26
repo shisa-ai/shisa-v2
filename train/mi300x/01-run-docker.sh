@@ -15,6 +15,7 @@ docker run -it --rm \
   --privileged \
   -v "${CURRENT_DIR}":/workspace/project \
   -v /root/.cache:/root/.cache \
+  -v /root/.netrc:/root/.netrc:ro \
   --network=host \
   --device=/dev/kfd \
   --device=/dev/dri \
@@ -24,5 +25,8 @@ docker run -it --rm \
   --security-opt seccomp=unconfined \
   --ipc=host \
   --shm-size 16G \
+  -e WANDB_PROJECT=shisa-v2-megablocks \
+  -e WANDB_LOG_MODEL=false \
+  -e WANDB_WATCH=false \
   rocm/7.0:rocm7.0_pytorch_training_instinct_20250915 \
   /bin/bash
