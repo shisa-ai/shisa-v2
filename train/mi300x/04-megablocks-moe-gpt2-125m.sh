@@ -3,30 +3,98 @@
 # GPT-2 125M MoE training script for ROCm 7.0 MegaBlocks environment
 # This script uses Mixture of Experts and is optimized for the ROCm 7.0 PyTorch training image
 
+# Training configuration
+EPOCHS=3
 EXP_DIR="${1:-moe_experiment}"
-TRAINING_STEPS="${2:-2000}"
-NUM_EXPERTS="${3:-64}"
-CAPACITY_FACTOR="${4:-1}"
-TOP_K="${5:-1}"
-LOSS_WEIGHT="${6:-0.1}"
-BATCH_SIZE="${7:-32}"
+NUM_EXPERTS="${2:-64}"
+CAPACITY_FACTOR="${3:-1}"
+TOP_K="${4:-1}"
+LOSS_WEIGHT="${5:-0.1}"
+BATCH_SIZE="${6:-32}"
+
+# Global batch size is fixed for this configuration, keep it in one place.
+GLOBAL_BATCH_SIZE=512
 
 SAVE_PATH="/workspace/project/checkpoints/${EXP_DIR}"
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 DATA_DIR="${DATA_DIR:-${SCRIPT_DIR}/data}"
 DATA_PREFIX="${DATA_PREFIX:-sft.shisa-v2.1_text_document}"
 
+# Calculate training parameters based on data size and epochs
+# This will be calculated automatically from the data
+DATA_IDX_FILE="${DATA_DIR}/${DATA_PREFIX}.idx"
+if [[ -f "${DATA_IDX_FILE}" ]]; then
+    # Extract number of sequences/documents from the Megatron .idx header
+    readarray -t IDX_META < <(DATA_IDX_FILE="${DATA_IDX_FILE}" python3 - <<'PY'
+import os
+import struct
+
+path = os.environ['DATA_IDX_FILE']
+with open(path, 'rb') as f:
+    header = f.read(9)
+    if not header.startswith(b'MMIDIDX'):
+        raise SystemExit(f"Unexpected .idx header: {header!r}")
+
+    _version = struct.unpack('<Q', f.read(8))[0]
+    _dtype_code = struct.unpack('<B', f.read(1))[0]
+    sequence_count = struct.unpack('<Q', f.read(8))[0]
+    document_count = struct.unpack('<Q', f.read(8))[0]
+
+actual_docs = document_count - 1 if document_count > 0 else sequence_count
+if actual_docs <= 0:
+    raise SystemExit("Parsed dataset size is not positive")
+
+print(sequence_count)
+print(actual_docs)
+PY
+)
+
+    SEQUENCE_COUNT=${IDX_META[0]:-0}
+    DOCUMENT_COUNT=${IDX_META[1]:-0}
+
+    # Prefer the reported number of documents (minus sentinel) when available
+    NUM_SAMPLES=${DOCUMENT_COUNT}
+    if [[ ${NUM_SAMPLES} -le 0 ]]; then
+        NUM_SAMPLES=${SEQUENCE_COUNT}
+    fi
+    TOTAL_SAMPLES=$((NUM_SAMPLES * EPOCHS))
+    TRAINING_STEPS=$(( (TOTAL_SAMPLES + GLOBAL_BATCH_SIZE - 1) / GLOBAL_BATCH_SIZE ))
+    echo "Calculated training parameters:"
+    echo "  - Sequence count: ${SEQUENCE_COUNT}"
+    echo "  - Document count: ${DOCUMENT_COUNT}"
+    echo "  - Number of samples per epoch: ${NUM_SAMPLES}"
+    echo "  - Epochs: ${EPOCHS}"
+    echo "  - Total samples (epochs * samples): ${TOTAL_SAMPLES}"
+    echo "  - Global batch size: ${GLOBAL_BATCH_SIZE}"
+    echo "  - Training steps (ceil): ${TRAINING_STEPS}"
+else
+    echo "Warning: Data index file not found at ${DATA_IDX_FILE}"
+    echo "Using default values"
+    NUM_SAMPLES=10000
+    TOTAL_SAMPLES=$((NUM_SAMPLES * EPOCHS))
+    TRAINING_STEPS=$(( (TOTAL_SAMPLES + GLOBAL_BATCH_SIZE - 1) / GLOBAL_BATCH_SIZE ))
+fi
+
 echo "=== MegaBlocks GPT-2 125M MoE Training (ROCm 7.0) ==="
 echo "Experiment directory: ${EXP_DIR}"
+echo "Epochs: ${EPOCHS}"
+echo "Training samples: ${TOTAL_SAMPLES}"
 echo "Training steps: ${TRAINING_STEPS}"
 echo "Number of experts: ${NUM_EXPERTS}"
 echo "Top-K: ${TOP_K}"
 echo "Save path: ${SAVE_PATH}"
 echo "Data directory: ${DATA_DIR}"
 echo "Data prefix: ${DATA_PREFIX}"
+if [[ -n "${NUM_SAMPLES:-}" ]]; then
+    echo "Dataset info: ${NUM_SAMPLES} samples, ${EPOCHS} epochs"
+fi
 echo ""
 
-# Create experiment directory in project space
+# Create experiment directory in project space and clean if exists
+if [[ -d "${SAVE_PATH}" ]]; then
+    echo "Warning: Checkpoint directory ${SAVE_PATH} already exists. Removing..."
+    rm -rf "${SAVE_PATH}"
+fi
 mkdir -p "${SAVE_PATH}"
 
 ##
@@ -71,9 +139,9 @@ MODEL_ARGUMENTS="\
 # Training hyperparameters - optimized for MoE
 TRAINING_ARGUMENTS="\
 --micro-batch-size ${BATCH_SIZE} \
---global-batch-size 512 \
---train-iters ${TRAINING_STEPS} \
---lr-decay-iters ${TRAINING_STEPS} \
+--global-batch-size ${GLOBAL_BATCH_SIZE} \
+--train-samples ${TOTAL_SAMPLES} \
+--lr-decay-samples ${TOTAL_SAMPLES} \
 --lr 0.00015 \
 --min-lr 0.00001 \
 --lr-decay-style cosine \
@@ -102,8 +170,12 @@ COMPUTE_ARGUMENTS="\
 --no-gradient-accumulation-fusion"
 
 # Checkpoint arguments
+# Calculate save interval (save at end of each epoch based on samples)
+SAVE_INTERVAL_SAMPLES=$((TOTAL_SAMPLES / EPOCHS))
+[[ ${SAVE_INTERVAL_SAMPLES} -lt 1000 ]] && SAVE_INTERVAL_SAMPLES=1000  # Minimum save interval
+
 CHECKPOINT_ARGUMENTS="\
---save-interval 2000 \
+--save-interval ${SAVE_INTERVAL_SAMPLES} \
 --save ${SAVE_PATH}"
 
 # Evaluation arguments
@@ -112,13 +184,13 @@ EVALUATION_ARGUMENTS="\
 --log-interval 100 \
 --eval-interval 1000"
 
-# Wandb logging arguments (uncomment to enable)
-# WANDB_ARGUMENTS="\
-# --wandb-project megablocks_moe \
-# --wandb-exp-name ${EXP_DIR} \
-# --log-params-norm \
-# --log-num-zeros-in-grad \
-# --log-validation-ppl-to-tensorboard"
+# Wandb logging arguments
+WANDB_ARGUMENTS="\
+--wandb-project ${WANDB_PROJECT:-shisa-v2-megablocks} \
+--wandb-exp-name moe_${EXP_DIR}_$(date +%Y%m%d_%H%M%S) \
+--log-params-norm \
+--log-num-zeros-in-grad \
+--log-validation-ppl-to-tensorboard"
 
 echo "Starting MoE training..."
 echo "MoE Configuration:"
@@ -128,6 +200,9 @@ echo "  - Capacity Factor: ${CAPACITY_FACTOR}"
 echo "  - Loss Weight: ${LOSS_WEIGHT}"
 echo ""
 echo "Logs will be saved to: ${SAVE_PATH}/train.log"
+echo "Save interval: ${SAVE_INTERVAL_SAMPLES} samples"
+echo "Training start time: $(date)"
+TRAINING_START_TIME=$(date +%s)
 
 cd /workspace/Megatron-LM
 
@@ -140,13 +215,35 @@ torchrun ${DISTRIBUTED_ARGUMENTS} \
        ${COMPUTE_ARGUMENTS} \
        ${CHECKPOINT_ARGUMENTS} \
        ${EVALUATION_ARGUMENTS} \
-       ${WANDB_ARGUMENTS:-} |& tee ${SAVE_PATH}/train.log
+       ${WANDB_ARGUMENTS} |& tee ${SAVE_PATH}/train.log
+
+# Calculate and display training statistics
+TRAINING_END_TIME=$(date +%s)
+TRAINING_DURATION=$((TRAINING_END_TIME - TRAINING_START_TIME))
+TRAINING_HOURS=$((TRAINING_DURATION / 3600))
+TRAINING_MINUTES=$(((TRAINING_DURATION % 3600) / 60))
+TRAINING_SECONDS=$((TRAINING_DURATION % 60))
 
 echo ""
 echo "=== MoE Training completed! ==="
+echo "Training end time: $(date)"
+echo "Total training duration: ${TRAINING_HOURS}h ${TRAINING_MINUTES}m ${TRAINING_SECONDS}s"
+echo "Training steps completed: ${TRAINING_STEPS}"
+echo "Training samples processed: ${TOTAL_SAMPLES}"
+echo "Epochs completed: ${EPOCHS}"
+echo "MoE Configuration Summary:"
+echo "  - Experts: ${NUM_EXPERTS}"
+echo "  - Top-K: ${TOP_K}"
+echo "  - Capacity Factor: ${CAPACITY_FACTOR}"
+echo "  - Loss Weight: ${LOSS_WEIGHT}"
+if [[ -n "${NUM_SAMPLES:-}" ]]; then
+    echo "Dataset samples: ${NUM_SAMPLES}"
+    echo "Samples per second: $(( TOTAL_SAMPLES / TRAINING_DURATION ))"
+fi
 echo "Checkpoints saved to: ${SAVE_PATH}"
 echo "Training log: ${SAVE_PATH}/train.log"
 echo ""
 echo "Usage for different configurations:"
-echo "  ./$(basename $0) experiment_name [steps] [experts] [capacity] [top_k] [loss_weight] [batch_size]"
-echo "  Example: ./$(basename $0) my_moe_run 5000 128 2 2 0.05 16"
+echo "  ./$(basename $0) experiment_name [experts] [capacity] [top_k] [loss_weight] [batch_size]"
+echo "  Example: ./$(basename $0) my_moe_run 128 2 2 0.05 16"
+echo "  Note: Training steps are calculated automatically based on ${EPOCHS} epochs"
