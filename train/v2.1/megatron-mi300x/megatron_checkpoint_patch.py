@@ -3,7 +3,7 @@
 import os
 import sys
 
-# Ensure Megatron-LM sources are importable when running from /workspace/project
+# Ensure Megatron-LM sources are importable when running from /workspace/shisa-v2.1
 _MEGA_PATH = os.environ.get("MEGATRON_LM_PATH", "/workspace/Megatron-LM")
 if _MEGA_PATH not in sys.path:
     sys.path.insert(0, _MEGA_PATH)
