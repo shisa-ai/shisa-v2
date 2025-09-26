@@ -118,7 +118,7 @@ docker-compose exec megablocks-training /bin/bash -c "
 
 ```bash
 # Follow training logs in real-time
-docker-compose exec megablocks-training tail -f /workspace/shisa-v2.1/checkpoints/train.log
+docker-compose exec megablocks-training tail -f /workspace/shisa-v2.1/checkpoints/<run_name>/train.log
 
 # Monitor GPU usage
 docker-compose exec megablocks-training watch -n 1 rocm-smi
@@ -175,8 +175,10 @@ Training steps completed: 1500
 Epochs completed: 3
 Total samples processed: 768000
 Samples per second: 94
-Checkpoints saved to: /workspace/shisa-v2.1/checkpoints
-Training log: /workspace/shisa-v2.1/checkpoints/train.log
+Checkpoints saved to: /workspace/shisa-v2.1/checkpoints/<run_name>
+Training log: /workspace/shisa-v2.1/checkpoints/<run_name>/train.log
+
+Each launch creates a timestamped subdirectory (e.g. `dense_YYYYMMDD_HHMMSS`). Use `RUN_NAME`/`RUN_TIMESTAMP`/`CHECKPOINT_ROOT` to override, or export `OVERWRITE_CHECKPOINTS=1` to reuse an existing folder.
 ```
 
 ### Enhanced Wandb Integration

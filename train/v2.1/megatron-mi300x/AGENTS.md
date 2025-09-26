@@ -133,20 +133,22 @@ The number of samples is automatically extracted from the `.idx` file header.
 ### Logs
 
 Training logs are saved to:
-- Standard: `/workspace/shisa-v2.1/checkpoints/train.log`
-- MoE: `/workspace/shisa-v2.1/checkpoints/<experiment_name>/train.log`
+- Standard: `/workspace/shisa-v2.1/checkpoints/<run_name>/train.log` (default run names look like `dense_YYYYMMDD_HHMMSS`)
+- MoE: `/workspace/shisa-v2.1/checkpoints/<experiment_name>/train.log` (defaults to `moe_YYYYMMDD_HHMMSS` when no name is provided)
 
 ### Checkpoints
 
 Checkpoints are saved to:
-- Standard: `/workspace/shisa-v2.1/checkpoints/`
+- Standard: `/workspace/shisa-v2.1/checkpoints/<run_name>/`
 - MoE: `/workspace/shisa-v2.1/checkpoints/<experiment_name>/`
+
+Each launch generates a timestamped folder (`dense_YYYYMMDD_HHMMSS` for dense runs, `moe_YYYYMMDD_HHMMSS` by default for MoE). Override the location with `RUN_NAME`, `RUN_TIMESTAMP`, or `CHECKPOINT_ROOT`. To intentionally replace an existing directory, export `OVERWRITE_CHECKPOINTS=1` before running the script.
 
 ### Real-time Monitoring
 
 ```bash
 # Monitor training progress
-docker exec <container_name> tail -f /workspace/shisa-v2.1/checkpoints/train.log
+docker exec <container_name> tail -f /workspace/shisa-v2.1/checkpoints/<run_name>/train.log
 
 # Check GPU utilization
 docker exec <container_name> watch -n 1 rocm-smi
@@ -297,7 +299,7 @@ docker exec <container_name> python /workspace/shisa-v2.1/test-epoch-calculation
 docker exec <container_name> bash /workspace/shisa-v2.1/04-megablocks-moe-gpt2-125m.sh &
 
 # 5. Monitor progress (from another terminal)
-docker exec <container_name> tail -f /workspace/shisa-v2.1/checkpoints/moe_experiment/train.log
+docker exec <container_name> tail -f /workspace/shisa-v2.1/checkpoints/<experiment_name>/train.log
 ```
 
 ## Example Session
@@ -319,7 +321,7 @@ docker exec rocm7_container_1758826316 python /workspace/shisa-v2.1/02-generate.
 docker exec rocm7_container_1758826316 bash /workspace/shisa-v2.1/03-megablocks-gpt2-125m.sh
 
 # 6. Monitor from host (new terminal)
-docker exec rocm7_container_1758826316 tail -f /workspace/shisa-v2.1/checkpoints/train.log
+docker exec rocm7_container_1758826316 tail -f /workspace/shisa-v2.1/checkpoints/<run_name>/train.log
 ```
 
 This workflow ensures reproducible training with proper resource management and monitoring capabilities.
