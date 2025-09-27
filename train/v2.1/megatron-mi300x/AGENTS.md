@@ -57,7 +57,7 @@ docker exec -it rocm7_container_1727340123 /bin/bash
 docker exec rocm7_container_1727340123 rocm-smi
 
 # Run training script
-docker exec rocm7_container_1727340123 /bin/bash -c "cd /workspace/shisa-v2.1 && ./03-megablocks-gpt2-125m.sh"
+docker exec rocm7_container_1727340123 /bin/bash -c "cd /workspace/shisa-v2.1 && ./gpt2-125m/03-train-dense.sh"
 ```
 
 ### File System Access
@@ -74,15 +74,15 @@ docker exec rocm7_container_1727340123 /bin/bash -c "cd /workspace/shisa-v2.1 &&
 First, generate the training data (run from host or container):
 
 ```bash
-# Generate SFT dataset for MegaBlocks
-python3 02-generate.sft.shisa-v2.1-megablocks.py
+# Generate SFT dataset for GPT-2 125M (writes to gpt2-125m/data/)
+./gpt2-125m/02-generate.sh
 ```
 
 This creates:
-- `./data/sft.shisa-v2.1_text_document.bin` (binary data)
-- `./data/sft.shisa-v2.1_text_document.idx` (index file)
-- `./data/gpt2-vocab.json` (vocabulary)
-- `./data/gpt2-merges.txt` (merge rules)
+- `./gpt2-125m/data/sft.shisa-v2.1_text_document.bin` (binary data)
+- `./gpt2-125m/data/sft.shisa-v2.1_text_document.idx` (index file)
+- `./gpt2-125m/data/gpt2-vocab.json` (vocabulary)
+- `./gpt2-125m/data/gpt2-merges.txt` (merge rules)
 
 ### 2. Standard Training
 
@@ -91,7 +91,7 @@ Run dense GPT-2 125M training:
 ```bash
 # From container
 cd /workspace/shisa-v2.1
-./03-megablocks-gpt2-125m.sh
+./gpt2-125m/03-train-dense.sh
 ```
 
 ### 3. MoE Training
@@ -103,12 +103,26 @@ Run Mixture of Experts training:
 cd /workspace/shisa-v2.1
 
 # Default configuration
-./04-megablocks-moe-gpt2-125m.sh
+./gpt2-125m/04-train-moe.sh
 
 # Custom configuration
-./04-megablocks-moe-gpt2-125m.sh my_experiment 128 2 2 0.05 16
-#                                  ^experiment  ^experts ^capacity ^top_k ^loss_weight ^batch_size
+./gpt2-125m/04-train-moe.sh my_experiment 128 2 2 0.05 16
+#                                        ^experiment  ^experts ^capacity ^top_k ^loss_weight ^batch_size
 ```
+
+### 4. Convert Checkpoints to Hugging Face
+
+After training finishes, convert the Megatron checkpoint into Hugging Face format:
+
+```bash
+cd /workspace/shisa-v2.1
+./export-hf.sh gpt2-125m/checkpoints/dense_YYYYMMDD_HHMMSS --iteration iter_0002203
+```
+
+- Omit `--iteration` to convert the iteration recorded in `latest_checkpointed_iteration.txt`.
+- Add `--output /some/path` to control where the Hugging Face files are written (defaults to `<run_dir>_hf`).
+- Use `--model-dir <path>` if your tokenizer data lives outside the checkpoint hierarchy.
+- Use `--hf-dtype bf16` (default) or another dtype to control the saved Hugging Face weights.
 
 ## Training Configuration
 
@@ -133,14 +147,14 @@ The number of samples is automatically extracted from the `.idx` file header.
 ### Logs
 
 Training logs are saved to:
-- Standard: `/workspace/shisa-v2.1/checkpoints/<run_name>/train.log` (default run names look like `dense_YYYYMMDD_HHMMSS`)
-- MoE: `/workspace/shisa-v2.1/checkpoints/<experiment_name>/train.log` (defaults to `moe_YYYYMMDD_HHMMSS` when no name is provided)
+- Standard: `/workspace/shisa-v2.1/gpt2-125m/checkpoints/<run_name>/train.log` (default run names look like `dense_YYYYMMDD_HHMMSS`)
+- MoE: `/workspace/shisa-v2.1/gpt2-125m/checkpoints/<experiment_name>/train.log` (defaults to `moe_YYYYMMDD_HHMMSS` when no name is provided)
 
 ### Checkpoints
 
 Checkpoints are saved to:
-- Standard: `/workspace/shisa-v2.1/checkpoints/<run_name>/`
-- MoE: `/workspace/shisa-v2.1/checkpoints/<experiment_name>/`
+- Standard: `/workspace/shisa-v2.1/gpt2-125m/checkpoints/<run_name>/`
+- MoE: `/workspace/shisa-v2.1/gpt2-125m/checkpoints/<experiment_name>/`
 
 Each launch generates a timestamped folder (`dense_YYYYMMDD_HHMMSS` for dense runs, `moe_YYYYMMDD_HHMMSS` by default for MoE). Override the location with `RUN_NAME`, `RUN_TIMESTAMP`, or `CHECKPOINT_ROOT`. To intentionally replace an existing directory, export `OVERWRITE_CHECKPOINTS=1` before running the script.
 
@@ -148,7 +162,7 @@ Each launch generates a timestamped folder (`dense_YYYYMMDD_HHMMSS` for dense ru
 
 ```bash
 # Monitor training progress
-docker exec <container_name> tail -f /workspace/shisa-v2.1/checkpoints/<run_name>/train.log
+docker exec <container_name> tail -f /workspace/shisa-v2.1/gpt2-125m/checkpoints/<run_name>/train.log
 
 # Check GPU utilization
 docker exec <container_name> watch -n 1 rocm-smi
@@ -219,7 +233,7 @@ Then execute commands using the full container name:
 
 ```bash
 # Run training scripts
-docker exec rocm7_container_1758826316 bash /workspace/shisa-v2.1/04-megablocks-moe-gpt2-125m.sh
+docker exec rocm7_container_1758826316 bash /workspace/shisa-v2.1/gpt2-125m/04-train-moe.sh
 
 # Run test scripts
 docker exec rocm7_container_1758826316 python /workspace/shisa-v2.1/test-epoch-calculation.py
@@ -278,7 +292,7 @@ This script shows:
 # Correct paths in container:
 docker exec <container> ls /workspace/shisa-v2.1/
 docker exec <container> python /workspace/shisa-v2.1/test-epoch-calculation.py
-docker exec <container> bash /workspace/shisa-v2.1/04-megablocks-moe-gpt2-125m.sh
+docker exec <container> bash /workspace/shisa-v2.1/gpt2-125m/04-train-moe.sh
 ```
 
 ### Testing Workflow
@@ -296,10 +310,10 @@ docker exec <container_name> python /workspace/shisa-v2.1/test-epoch-calculation
 # Look for output like: "Training steps: XXX" where XXX > 0
 
 # 4. Run training with monitoring
-docker exec <container_name> bash /workspace/shisa-v2.1/04-megablocks-moe-gpt2-125m.sh &
+docker exec <container_name> bash /workspace/shisa-v2.1/gpt2-125m/04-train-moe.sh &
 
 # 5. Monitor progress (from another terminal)
-docker exec <container_name> tail -f /workspace/shisa-v2.1/checkpoints/<experiment_name>/train.log
+docker exec <container_name> tail -f /workspace/shisa-v2.1/gpt2-125m/checkpoints/<experiment_name>/train.log
 ```
 
 ## Example Session
@@ -318,10 +332,10 @@ docker exec rocm7_container_1758826316 python /workspace/shisa-v2.1/test-epoch-c
 docker exec rocm7_container_1758826316 python /workspace/shisa-v2.1/02-generate.sft.shisa-v2.1-megablocks.py
 
 # 5. Start training
-docker exec rocm7_container_1758826316 bash /workspace/shisa-v2.1/03-megablocks-gpt2-125m.sh
+docker exec rocm7_container_1758826316 bash /workspace/shisa-v2.1/gpt2-125m/03-train-dense.sh
 
 # 6. Monitor from host (new terminal)
-docker exec rocm7_container_1758826316 tail -f /workspace/shisa-v2.1/checkpoints/<run_name>/train.log
+docker exec rocm7_container_1758826316 tail -f /workspace/shisa-v2.1/gpt2-125m/checkpoints/<run_name>/train.log
 ```
 
 This workflow ensures reproducible training with proper resource management and monitoring capabilities.
