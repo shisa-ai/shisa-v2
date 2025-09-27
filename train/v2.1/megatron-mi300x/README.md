@@ -17,3 +17,15 @@ Training runs on ROCm PyTorch 2.5 hit a checkpoint failure inside Megatron-LM’
 
 ### Optional static patch
 - `patch-megatron-checkpoint-save.patch` (root of this repo) remains available if you prefer modifying Megatron sources directly (`git apply` inside `/workspace/Megatron-LM`).
+
+## Hugging Face MoE exports
+
+The MoE conversion flow drops a custom modeling shim alongside the exported checkpoint. When loading the resulting directory with Transformers, opt in to custom code so the experts are wired up correctly:
+
+```python
+from transformers import AutoModelForCausalLM
+model = AutoModelForCausalLM.from_pretrained('/path/to/moe/export', trust_remote_code=True)
+```
+
+Without `trust_remote_code=True` the loader falls back to the dense GPT-2 architecture and reports uninitialised parameter warnings.
+

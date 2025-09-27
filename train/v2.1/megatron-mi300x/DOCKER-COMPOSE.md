@@ -72,8 +72,8 @@ docker-compose exec megablocks-training python3 --version
 docker-compose exec megablocks-training rocm-smi
 
 # Run training scripts
-docker-compose exec megablocks-training /bin/bash -c "cd /workspace/shisa-v2.1 && ./03-megablocks-gpt2-125m.sh"
-docker-compose exec megablocks-training /bin/bash -c "cd /workspace/shisa-v2.1 && ./04-megablocks-moe-gpt2-125m.sh my_experiment"
+docker-compose exec megablocks-training /bin/bash -c "cd /workspace/shisa-v2.1 && ./gpt2-125m/03-train-dense.sh"
+docker-compose exec megablocks-training /bin/bash -c "cd /workspace/shisa-v2.1 && ./gpt2-125m/04-train-moe.sh my_experiment"
 ```
 
 ## Training Workflow with Docker Compose
@@ -104,13 +104,13 @@ docker-compose exec megablocks-training /bin/bash -c "
 # Standard GPT-2 125M training
 docker-compose exec megablocks-training /bin/bash -c "
     cd /workspace/shisa-v2.1 &&
-    ./03-megablocks-gpt2-125m.sh
+    ./gpt2-125m/03-train-dense.sh
 "
 
 # MoE training with custom parameters
 docker-compose exec megablocks-training /bin/bash -c "
     cd /workspace/shisa-v2.1 &&
-    ./04-megablocks-moe-gpt2-125m.sh my_moe_experiment 128 2 2 0.05 16
+    ./gpt2-125m/04-train-moe.sh my_moe_experiment 128 2 2 0.05 16
 "
 ```
 
@@ -118,14 +118,26 @@ docker-compose exec megablocks-training /bin/bash -c "
 
 ```bash
 # Follow training logs in real-time
-docker-compose exec megablocks-training tail -f /workspace/shisa-v2.1/checkpoints/<run_name>/train.log
+docker-compose exec megablocks-training tail -f /workspace/shisa-v2.1/gpt2-125m/checkpoints/<run_name>/train.log
 
 # Monitor GPU usage
 docker-compose exec megablocks-training watch -n 1 rocm-smi
 
 # Check training progress
-docker-compose exec megablocks-training ls -la /workspace/shisa-v2.1/checkpoints/
+docker-compose exec megablocks-training ls -la /workspace/shisa-v2.1/gpt2-125m/checkpoints/
 ```
+
+### 5. Convert to Hugging Face
+
+```bash
+docker-compose exec megablocks-training /bin/bash -c "\
+    cd /workspace/shisa-v2.1 && \
+    ./export-hf.sh gpt2-125m/checkpoints/dense_YYYYMMDD_HHMMSS --iteration iter_0002203"
+```
+
+- Add `--output /some/path` to control the Hugging Face export location (defaults to `<run_dir>_hf`).
+- Use `--model-dir <path>` if tokenizers live outside the checkpoint directory.
+- Use `--hf-dtype bf16` (default) or another dtype to control the saved Hugging Face weights.
 
 ## Environment Variables
 
@@ -175,8 +187,8 @@ Training steps completed: 1500
 Epochs completed: 3
 Total samples processed: 768000
 Samples per second: 94
-Checkpoints saved to: /workspace/shisa-v2.1/checkpoints/<run_name>
-Training log: /workspace/shisa-v2.1/checkpoints/<run_name>/train.log
+Checkpoints saved to: /workspace/shisa-v2.1/gpt2-125m/checkpoints/<run_name>
+Training log: /workspace/shisa-v2.1/gpt2-125m/checkpoints/<run_name>/train.log
 
 Each launch creates a timestamped subdirectory (e.g. `dense_YYYYMMDD_HHMMSS`). Use `RUN_NAME`/`RUN_TIMESTAMP`/`CHECKPOINT_ROOT` to override, or export `OVERWRITE_CHECKPOINTS=1` to reuse an existing folder.
 ```
