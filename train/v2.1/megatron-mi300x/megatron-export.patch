@@ -1,0 +1,338 @@
+diff --git a/megatron/legacy/model/transformer.py b/megatron/legacy/model/transformer.py
+index db48d607e..9c9ec9935 100644
+--- a/megatron/legacy/model/transformer.py
++++ b/megatron/legacy/model/transformer.py
+@@ -194,12 +194,19 @@ def sinkhorn(cost, tol=0.0001):
+ def get_router_linear_layer(config):
+     args = get_args()
+     router = torch.nn.Linear(args.hidden_size, args.num_experts, bias=False)
+-    with get_cuda_rng_tracker().fork(get_data_parallel_rng_tracker_name()):
++    tracker = get_cuda_rng_tracker()
++    tracker_states = getattr(tracker, 'states_', {})
++    name = get_data_parallel_rng_tracker_name()
++    context = nullcontext()
++    if torch.cuda.is_available() and tracker_states and name in tracker_states:
++        context = tracker.fork(name)
++    with context:
+         config.init_method(router.weight)
+-    setattr(router.weight, 'sequence_parallel',config.sequence_parallel)
++    setattr(router.weight, 'sequence_parallel', config.sequence_parallel)
+     return router
+ 
+ 
++
+ class SwitchMLP(MegatronModule):
+     """
+     Routes input to one of N MLP "experts"
+@@ -208,7 +215,8 @@ class SwitchMLP(MegatronModule):
+         super(SwitchMLP, self).__init__()
+         args = get_args()
+         self.router = get_router_linear_layer(config)
+-        self.expert_parallel_size = mpu.get_expert_model_parallel_world_size()
++        world_size = mpu.get_expert_model_parallel_world_size() or 1
++        self.expert_parallel_size = max(1, world_size)
+         self.sequence_parallel = config.sequence_parallel
+         self.add_bias = config.add_bias_linear
+ 
+@@ -221,19 +229,23 @@ class SwitchMLP(MegatronModule):
+         for i in range(self.num_local_experts):
+             self.local_experts.append(ParallelMLP(config, is_expert=True))
+ 
+-        self.tp_ep_group = get_expert_tensor_and_model_parallel_group()
++        if torch.distributed.is_available() and torch.distributed.is_initialized():
++            self.tp_ep_group = get_expert_tensor_and_model_parallel_group()
++        else:
++            self.tp_ep_group = None
++            self.sequence_parallel = False
+ 
+     def gather_indices(self, local_indices):
+         """ Gather tensors and concatinate along the first dimension."""
++        if self.tp_ep_group is None or not (torch.distributed.is_available() and torch.distributed.is_initialized()):
++            return local_indices
+         world_size = torch.distributed.get_world_size(group=self.tp_ep_group)
+-        # Bypass the function if we are using only 1 GPU.
+         if world_size == 1:
+             return local_indices
+ 
+         dim_size = list(local_indices.size())
+         dim_size[0] = dim_size[0] * world_size
+ 
+-        # TODO pre allocate memory
+         output = torch.empty(dim_size, dtype=local_indices.dtype,
+                              device=torch.cuda.current_device())
+         torch.distributed._all_gather_base(
+@@ -290,15 +302,12 @@ class SwitchMLP(MegatronModule):
+                 output_bias = output_bias.expand_as(output)
+                 output_bias_total[local_indices, :] = output_bias
+ 
+-        if self.sequence_parallel or (self.expert_parallel_size > 1):
++        if self.tp_ep_group is not None and torch.distributed.is_available() and torch.distributed.is_initialized() and (self.sequence_parallel or (self.expert_parallel_size > 1)):
+             output_total = \
+                 reduce_scatter_to_sequence_parallel_region(output_total, group=self.tp_ep_group)
+             if self.add_bias:
+                 output_bias_total = \
+                     reduce_scatter_to_sequence_parallel_region(output_bias_total, group=self.tp_ep_group)
+-
+-                # bias is duplicated across tensor parallelism ranks;
+-                # reduce scatter reduces bias across tensor parallel_ranks
+                 output_bias_total = \
+                     output_bias_total/mpu.get_tensor_model_parallel_world_size()
+ 
+diff --git a/tools/checkpoint/loader_mcore.py b/tools/checkpoint/loader_mcore.py
+index 9185969b3..7c79bfb0b 100644
+--- a/tools/checkpoint/loader_mcore.py
++++ b/tools/checkpoint/loader_mcore.py
+@@ -4,6 +4,7 @@ import json
+ import os
+ import sys
+ import torch
++import torch.distributed as dist
+ import types
+ 
+ from schema_mcore import get_model_schema
+@@ -39,6 +40,26 @@ def _load_checkpoint(queue, args):
+     if args.megatron_path is not None:
+         sys.path.insert(0, args.megatron_path)
+ 
++    if dist.is_available() and not dist.is_initialized():
++        backend = os.environ.get('MEGATRON_CONVERT_DIST_BACKEND', 'gloo')
++        rank = int(os.environ.get('RANK', 0))
++        world_size = int(os.environ.get('WORLD_SIZE', 1))
++        os.environ.setdefault('MASTER_ADDR', '127.0.0.1')
++        base_port = int(os.environ.get('MASTER_PORT', '29500'))
++        last_error = None
++        for offset in range(8):
++            port = base_port + offset
++            os.environ['MASTER_PORT'] = str(port)
++            try:
++                dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
++                last_error = None
++                break
++            except Exception as err:
++                last_error = err
++                continue
++        if last_error is not None:
++            raise last_error
++
+     try:
+         from megatron.training.arguments import parse_args, validate_args
+         from megatron.training.global_vars import set_args, set_global_variables
+@@ -117,6 +138,7 @@ def _load_checkpoint(queue, args):
+     check_for_arg('disable_bias_linear', False)
+     check_for_arg('params_dtype')
+     check_for_arg('swiglu', False)
++    check_for_arg('expert_model_parallel_size', 1)
+ 
+     # Determine how to make our models
+     if args.model_type == 'GPT':
+@@ -187,6 +209,15 @@ def _load_checkpoint(queue, args):
+     mpu.set_pipeline_model_parallel_world_size(margs.pipeline_model_parallel_size)
+     mpu.set_virtual_pipeline_model_parallel_world_size(margs.virtual_pipeline_model_parallel_size)
+     mpu.set_expert_model_parallel_world_size(margs.expert_model_parallel_size)
++    if not mpu.model_parallel_is_initialized():
++        mpu.initialize_model_parallel(
++            tensor_model_parallel_size=margs.tensor_model_parallel_size,
++            pipeline_model_parallel_size=margs.pipeline_model_parallel_size,
++            virtual_pipeline_model_parallel_size=margs.virtual_pipeline_model_parallel_size,
++            context_parallel_size=getattr(margs, "context_parallel_size", 1),
++            hierarchical_context_parallel_sizes=getattr(margs, "context_parallel_size_list", None),
++            expert_model_parallel_size=getattr(margs, "expert_model_parallel_size", 1),
++        )
+     fused_kernels.load(margs)
+ 
+     # Get true (non-padded) vocab size
+@@ -234,6 +265,12 @@ def _load_checkpoint(queue, args):
+     md.qkv_bias = margs.add_qkv_bias
+     md.norm_has_bias = norm_has_bias
+     md.swiglu = margs.swiglu
++    md.num_experts = getattr(margs, 'num_experts', 0) or 0
++    md.expert_model_parallel_size = getattr(margs, 'expert_model_parallel_size', 1) or 1
++    if md.num_experts and md.expert_model_parallel_size:
++        md.num_local_experts = md.num_experts // md.expert_model_parallel_size
++    else:
++        md.num_local_experts = 0
+     md.previous_tensor_parallel_size = margs.tensor_model_parallel_size
+     md.previous_pipeline_parallel_size = margs.pipeline_model_parallel_size
+     md.true_vocab_size = true_vocab_size
+@@ -302,42 +339,64 @@ def _load_checkpoint(queue, args):
+                 qkv_weight = []
+                 qkv_bias = []
+                 dense_weight = []
+-                mlp_l0_weight = []
+-                mlp_l0_bias = []
+-                mlp_l1_weight = []
++                is_moe_layer = md.num_experts > 0 and any(key.startswith("mlp_fc1_weight.") for key in layer.keys())
++                if not is_moe_layer:
++                    mlp_l0_weight = []
++                    mlp_l0_bias = []
++                    mlp_l1_weight = []
++                else:
++                    local_experts = md.num_local_experts
++                    experts_fc1 = [[] for _ in range(local_experts)]
++                    experts_fc2 = [[] for _ in range(local_experts)]
++                    router_weight = layer.get("router_weight")
++                    if router_weight is not None:
++                        message["router weight"] = router_weight
++
+                 for tp_rank, model in enumerate(models):
+                     layer = schema.get_layer(model, layer_num)
+                     qkv_weight.append(layer["self_attn_qkv_weight"])
+                     dense_weight.append(layer["self_attn_proj_weight"])
+-                    mlp_l0_weight.append(layer["mlp_fc1_weight"])
+-                    mlp_l1_weight.append(layer["mlp_fc2_weight"])
++                    if is_moe_layer:
++                        if "router weight" not in message and layer.get("router_weight") is not None:
++                            message["router weight"] = layer["router_weight"]
++                        for expert_idx in range(local_experts):
++                            experts_fc1[expert_idx].append(layer[f"mlp_fc1_weight.{expert_idx}"])
++                            experts_fc2[expert_idx].append(layer[f"mlp_fc2_weight.{expert_idx}"])
++                    else:
++                        mlp_l0_weight.append(layer["mlp_fc1_weight"])
++                        mlp_l1_weight.append(layer["mlp_fc2_weight"])
+                     if md.qkv_bias:
+                         qkv_bias.append(layer["self_attn_qkv_bias"])
+-                    if md.linear_bias:
++                    if not is_moe_layer and md.linear_bias:
+                         mlp_l0_bias.append(layer["mlp_fc1_bias"])
+ 
+-                # Handle gated linear units
+-                if md.swiglu:
+-                    # concat all the first halves ('W's) and all the second halves ('V's)
+-                    for tp_rank in range(tp_size):
+-                        mlp_l0_weight[tp_rank] = torch.chunk(mlp_l0_weight[tp_rank], 2, dim=0)
+-                    message["mlp l0 weight W"] = torch.cat([w[0] for w in mlp_l0_weight], dim=0)
+-                    message["mlp l0 weight V"] = torch.cat([w[1] for w in mlp_l0_weight], dim=0)
++                # Handle gated linear units / MoE experts
++                if is_moe_layer:
++                    message["mlp experts fc1 weight"] = [torch.cat(parts, dim=0) for parts in experts_fc1]
++                    message["mlp experts fc2 weight"] = [torch.cat(parts, dim=1) for parts in experts_fc2]
+                 else:
+-                    message["mlp l0 weight"] = torch.cat(mlp_l0_weight, dim=0)
++                    if md.swiglu:
++                        # concat all the first halves ('W's) and all the second halves ('V's)
++                        for tp_rank in range(tp_size):
++                            mlp_l0_weight[tp_rank] = torch.chunk(mlp_l0_weight[tp_rank], 2, dim=0)
++                        message["mlp l0 weight W"] = torch.cat([w[0] for w in mlp_l0_weight], dim=0)
++                        message["mlp l0 weight V"] = torch.cat([w[1] for w in mlp_l0_weight], dim=0)
++                    else:
++                        message["mlp l0 weight"] = torch.cat(mlp_l0_weight, dim=0)
+ 
+                 # simple concat of the rest
+                 message["qkv weight"] = torch.cat(qkv_weight, dim=0)
+                 message["dense weight"] = torch.cat(dense_weight, dim=1)
+-                message["mlp l1 weight"] = torch.cat(mlp_l1_weight, dim=1)
++                if not is_moe_layer:
++                    message["mlp l1 weight"] = torch.cat(mlp_l1_weight, dim=1)
+                 if md.qkv_bias:
+                     message["qkv bias"] = torch.cat(qkv_bias, dim=0)
+-                if md.linear_bias:
++                if not is_moe_layer and md.linear_bias:
+                     if md.swiglu:
+                         for tp_rank in range(tp_size):
+                             mlp_l0_bias[tp_rank] = torch.chunk(mlp_l0_bias[tp_rank], 2, dim=0)
+-                        message["mlp l0 bias W"] = torch.cat([b[0] for b in mlp_l0_bias],dim=0)
+-                        message["mlp l0 bias V"] = torch.cat([b[1] for b in mlp_l0_bias],dim=0)
++                        message["mlp l0 bias W"] = torch.cat([b[0] for b in mlp_l0_bias], dim=0)
++                        message["mlp l0 bias V"] = torch.cat([b[1] for b in mlp_l0_bias], dim=0)
+                     else:
+                         message["mlp l0 bias"] = torch.cat(mlp_l0_bias, dim=0)
+ 
+diff --git a/tools/checkpoint/saver_megatron.py b/tools/checkpoint/saver_megatron.py
+index 9b11b9afe..5c39b9538 100644
+--- a/tools/checkpoint/saver_megatron.py
++++ b/tools/checkpoint/saver_megatron.py
+@@ -279,32 +279,52 @@ def save_checkpoint(queue, args):
+             post_norm_weight = msg.pop("post norm weight")
+             if md.norm_has_bias:
+                 post_norm_bias = msg.pop("post norm bias")
+-            if md.linear_bias:
++            if md.linear_bias and "dense bias" in msg:
+                 dense_bias = msg.pop("dense bias")
+                 mlp_l1_bias = msg.pop("mlp l1 bias")
++            else:
++                dense_bias = None
++                mlp_l1_bias = None
+ 
+             # Split up the parallel tensors
+             qkv_weight = torch.chunk(msg.pop("qkv weight"), args.target_tensor_parallel_size, dim=0)
+             dense_weight = torch.chunk(msg.pop("dense weight"), args.target_tensor_parallel_size, dim=1)
+-            mlp_l1_weight = torch.chunk(msg.pop("mlp l1 weight"), args.target_tensor_parallel_size, dim=1)
+-
+-            # Special handling for swiglu
+-            if md.swiglu:
+-                mlp_l0_weight_W = torch.chunk(msg.pop("mlp l0 weight W"), args.target_tensor_parallel_size, dim=0)
+-                mlp_l0_weight_V = torch.chunk(msg.pop("mlp l0 weight V"), args.target_tensor_parallel_size, dim=0)
+-                mlp_l0_weight = [torch.cat(weights, dim=0) for weights in zip(mlp_l0_weight_W, mlp_l0_weight_V)]
+-            else:
+-                mlp_l0_weight = torch.chunk(msg.pop("mlp l0 weight"), args.target_tensor_parallel_size, dim=0)
+-
++            experts_fc1_weight = msg.pop("mlp experts fc1 weight", None)
++            experts_fc2_weight = msg.pop("mlp experts fc2 weight", None)
++            router_weight = msg.pop("router weight", None)
++            is_moe_layer = experts_fc1_weight is not None
++            if not is_moe_layer:
++                mlp_l1_weight = torch.chunk(msg.pop("mlp l1 weight"), args.target_tensor_parallel_size, dim=1)
++                if md.swiglu:
++                    mlp_l0_weight_W = torch.chunk(msg.pop("mlp l0 weight W"), args.target_tensor_parallel_size, dim=0)
++                    mlp_l0_weight_V = torch.chunk(msg.pop("mlp l0 weight V"), args.target_tensor_parallel_size, dim=0)
++                    mlp_l0_weight = [torch.cat(weights, dim=0) for weights in zip(mlp_l0_weight_W, mlp_l0_weight_V)]
++                else:
++                    mlp_l0_weight = torch.chunk(msg.pop("mlp l0 weight"), args.target_tensor_parallel_size, dim=0)
+             if md.qkv_bias:
+                 qkv_bias = torch.chunk(msg.pop("qkv bias"), args.target_tensor_parallel_size, dim=0)
+-            if md.linear_bias:
++            else:
++                qkv_bias = [None] * args.target_tensor_parallel_size
++            if md.linear_bias and not is_moe_layer and mlp_l1_bias is not None:
+                 if md.swiglu:
+                     mlp_l0_bias_W = torch.chunk(msg.pop("mlp l0 bias W"), args.target_tensor_parallel_size, dim=0)
+                     mlp_l0_bias_V = torch.chunk(msg.pop("mlp l0 bias V"), args.target_tensor_parallel_size, dim=0)
+                     mlp_l0_bias = [torch.cat(bias, dim=0) for bias in zip(mlp_l0_bias_W, mlp_l0_bias_V)]
+                 else:
+                     mlp_l0_bias = torch.chunk(msg.pop("mlp l0 bias"), args.target_tensor_parallel_size, dim=0)
++            else:
++                mlp_l0_bias = [None] * args.target_tensor_parallel_size
++
++            if is_moe_layer:
++                fc1_chunks = [torch.chunk(weight, args.target_tensor_parallel_size, dim=0) for weight in experts_fc1_weight]
++                fc2_chunks = [torch.chunk(weight, args.target_tensor_parallel_size, dim=1) for weight in experts_fc2_weight]
++                if router_weight is not None:
++                    if args.target_tensor_parallel_size == 1:
++                        router_chunks = [router_weight]
++                    else:
++                        router_chunks = torch.chunk(router_weight, args.target_tensor_parallel_size, dim=1)
++                else:
++                    router_chunks = [None] * args.target_tensor_parallel_size
+ 
+             # Save them to the model
+             for tp_rank in range(args.target_tensor_parallel_size):
+@@ -317,14 +337,23 @@ def save_checkpoint(queue, args):
+                 l.post_attention_norm.weight.data.copy_(post_norm_weight)
+                 if md.norm_has_bias:
+                     l.post_attention_norm.bias.data.copy_(post_norm_bias)
+-                l.mlp.dense_h_to_4h.weight.data.copy_(mlp_l0_weight[tp_rank])
+-                l.mlp.dense_4h_to_h.weight.data.copy_(mlp_l1_weight[tp_rank])
+-                if md.qkv_bias:
++                if is_moe_layer:
++                    if router_chunks[tp_rank] is not None:
++                        l.mlp.router.weight.data.copy_(router_chunks[tp_rank])
++                    for expert_idx, expert in enumerate(l.mlp.local_experts):
++                        expert.dense_h_to_4h.weight.data.copy_(fc1_chunks[expert_idx][tp_rank])
++                        expert.dense_4h_to_h.weight.data.copy_(fc2_chunks[expert_idx][tp_rank])
++                else:
++                    l.mlp.dense_h_to_4h.weight.data.copy_(mlp_l0_weight[tp_rank])
++                    l.mlp.dense_4h_to_h.weight.data.copy_(mlp_l1_weight[tp_rank])
++                if md.qkv_bias and qkv_bias[tp_rank] is not None:
+                     l.self_attention.query_key_value.bias.data.copy_(qkv_bias[tp_rank])
+-                if md.linear_bias:
++                if not is_moe_layer and md.linear_bias and dense_bias is not None:
+                     l.self_attention.dense.bias.data.copy_(dense_bias)
+-                    l.mlp.dense_h_to_4h.bias.data.copy_(mlp_l0_bias[tp_rank])
+-                    l.mlp.dense_4h_to_h.bias.data.copy_(mlp_l1_bias)
++                    if mlp_l0_bias[tp_rank] is not None:
++                        l.mlp.dense_h_to_4h.bias.data.copy_(mlp_l0_bias[tp_rank])
++                    if mlp_l1_bias is not None:
++                        l.mlp.dense_4h_to_h.bias.data.copy_(mlp_l1_bias)
+ 
+             total_layer_num = total_layer_num + 1
+             check_message(msg)
