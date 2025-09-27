@@ -5,5 +5,11 @@ data/
 checkpoints/
 wandb/
 
+# models
+*/data/
+*/checkpoints/
+*/*_hf/
+*/*-hf/
+
 # ext
 megablocks/
