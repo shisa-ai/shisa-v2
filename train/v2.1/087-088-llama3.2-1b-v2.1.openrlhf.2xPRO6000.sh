@@ -11,12 +11,12 @@ ORIG_MODEL=${ORIG_MODEL:-"meta-llama/Llama-3.2-1B-Instruct"}
 
 SFT_CKPT=${SFT_CKPT:-"087-llama3.2-1b-v2.1-sft"}
 SFT_DATA="sft.shisa-v2.1.jsonl"
-SFT_LR=${SFT_LR:-2.53e-5}
+SFT_LR=${SFT_LR:-2.83e-5}
 SFT_MBS=16
 
 DPO_CKPT=${DPO_CKPT:-"088-llama3.2-1b-v2.1-dpo"}
 DPO_DATA="dpo.shisa-v2.1.jsonl"
-DPO_LR=${DPO_LR:-3.16e-7}
+DPO_LR=${DPO_LR:-3.54e-7}
 DPO_MBS=8
 
 main() {
