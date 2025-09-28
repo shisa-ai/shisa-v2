@@ -42,7 +42,7 @@ ACCELERATE_CONFIG = "accelerate_config.fsdp2.yaml"
 
 # Model and data configuration
 MODEL = "Qwen/Qwen3-30B-A3B-Instruct-2507"
-DATASET_PATH = "./sft.shisa-v2.jsonl"  # Generated from generate-new-sft.py
+DATASET_PATH = "./sft.shisa-v2.1.jsonl"  # Generated from generate-new-sft.py
 OUT = "075-qwen3-30b-a3b-v2-sft-trl-megablocks"
 CACHED_DATASET_PATH = "./cached_formatted_dataset"  # Cache for processed dataset
 
@@ -73,16 +73,22 @@ def setup_environment():
     os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/tmp/torch_compile_cache"
     os.environ["TRITON_CACHE_DIR"] = "/tmp/triton_cache"
 
-    # ROCm/RCCL optimizations for MI300X
-    os.environ["RCCL_DEBUG"] = "WARN"  # Reduce verbosity to avoid log spam
-    os.environ["RCCL_NET_GDR_LEVEL"] = "3"  # Enable GPU Direct RDMA
-    os.environ["RCCL_TREE_THRESHOLD"] = "4294967296"  # Use tree algorithm for large messages
+    # ROCm/RCCL optimizations for MI300X - Conservative settings for stability
+    os.environ["RCCL_DEBUG"] = "INFO"  # More verbose for debugging timeouts
+    os.environ["RCCL_NET_GDR_LEVEL"] = "0"  # Disable GPU Direct RDMA initially
+    os.environ["RCCL_TREE_THRESHOLD"] = "0"  # Use ring algorithm (more stable)
     os.environ["RCCL_LL_THRESHOLD"] = "0"  # Disable low-latency for bandwidth
-    os.environ["RCCL_BUFFSIZE"] = "8388608"  # 8MB buffer size for MI300X
-    os.environ["RCCL_NTHREADS"] = "512"  # Match MI300X compute units
-    os.environ["RCCL_MAX_NCHANNELS"] = "16"  # Optimize for 8x MI300X topology
+    os.environ["RCCL_BUFFSIZE"] = "2097152"  # Reduce to 2MB buffer
+    os.environ["RCCL_NTHREADS"] = "256"  # Conservative thread count
+    os.environ["RCCL_MAX_NCHANNELS"] = "8"  # Reduce channels for stability
     os.environ["HSA_FORCE_FINE_GRAIN_PCIE"] = "1"  # Fine-grain memory access
     os.environ["HIP_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"  # Explicit GPU visibility
+
+    # Additional RCCL stability settings for MI300X
+    os.environ["RCCL_TIMEOUT"] = "3600"  # 1 hour timeout
+    os.environ["RCCL_IB_DISABLE"] = "1"  # Disable InfiniBand if present
+    os.environ["RCCL_SOCKET_IFNAME"] = "lo"  # Force loopback for single-node
+    os.environ["RCCL_P2P_DISABLE"] = "1"  # Disable P2P initially for debugging
 
 
 def _rank_prefix() -> str:
