@@ -39,6 +39,10 @@ Without `trust_remote_code=True` the loader falls back to the dense GPT-2 archit
 
 - Run `llama3.2-1b/02-generate.sh` to materialise the shared SFT dataset with the model’s native tokenizer and chat template.
 - Kick off Megatron fine-tuning via `llama3.2-1b/03-train-dense.sh`; this wraps `03-megablocks-llama3.2-1b.sh` and uses GBS=128, LR=2.83e-05, rope scaling, and RMSNorm defaults from the HF config.
+- Hugging Face conversions now target the mcore saver and snapshot the upstream weights locally before the first run. If `/workspace/shisa-v2.1/llama3.2-1b/base_tp8_pp1` is missing, the launcher downloads `meta-llama/Llama-3.2-1B-Instruct`, writes it to `hf_snapshot/`, and invokes `tools/checkpoint/convert.py --saver mcore` so the checkpoint layout matches Megatron-Core.
+- The script auto-detects when tensor-parallel > 1 (or `CONVERT_SEQUENCE_PARALLEL=1`) and forwards `--sequence-parallel` to the converter so the rebuilt checkpoint passes Megatron’s MoE validation.
+- Training is now iteration-based: we pass `--train-iters`/`--lr-decay-iters` instead of the deprecated sample-based flags and compute `--save-interval` in steps. This matches the expectations of recent Megatron releases when resuming from checkpoints.
+- Llama 3.2 1B’s grouped-query attention uses 32 attention heads with 8 KV groups. We expose `NUM_QUERY_GROUPS` (default `8`) so the generated Megatron model lines up with the converted weights and avoids QKV shape mismatches when loading `base_tp8_pp1`.
 
 ## Megatron Checkpoint Conversion (ROCm build)
 
@@ -50,5 +54,4 @@ The ROCm fork ships converter plugins for these HF checkpoint families:
 - Mixtral 8×7B (via `loader_mixtral_hf.py`)
 
 Missing plugins (`loader_hf`, `loader_qwen3_hf`, etc.) mean other architectures require manual conversion or an upstream plugin drop-in before our scripts can auto-convert HF weights.
-
 
