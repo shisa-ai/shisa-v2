@@ -68,12 +68,10 @@ EVAL_INTERVAL=$(( TRAINING_STEPS / (EPOCHS * EVALS_PER_EPOCH) ))
 [[ ${EVAL_INTERVAL} -lt 1 ]] && EVAL_INTERVAL=1
 
 if [[ ${EPOCHS} -gt 0 ]]; then
-    SAVE_INTERVAL_SAMPLES=$(( TOTAL_SAMPLES / EPOCHS ))
+    SAVE_INTERVAL_STEPS=$(( TRAINING_STEPS / EPOCHS ))
+    [[ ${SAVE_INTERVAL_STEPS} -lt 1 ]] && SAVE_INTERVAL_STEPS=1
 else
-    SAVE_INTERVAL_SAMPLES=${TOTAL_SAMPLES}
-fi
-if [[ ${SAVE_INTERVAL_SAMPLES} -lt ${GLOBAL_BATCH_SIZE} ]]; then
-    SAVE_INTERVAL_SAMPLES=${GLOBAL_BATCH_SIZE}
+    SAVE_INTERVAL_STEPS=${TRAINING_STEPS}
 fi
 
 SAVE_PATH="${CHECKPOINT_ROOT}/${RUN_NAME}"
@@ -96,10 +94,13 @@ fi
 
 # Ensure base Megatron checkpoint is available when not explicitly provided
 BASE_CKPT_DIR="${BASE_CKPT_DIR:-${SCRIPT_DIR}/llama3.2-1b/base_tp8_pp1}"
-BASE_ITER_DIR="${BASE_CKPT_DIR}/iter_0000000"
+base_checkpoint_ready() {
+    [[ -f "${BASE_CKPT_DIR}/latest_checkpointed_iteration.txt" ]] && return 0
+    compgen -G "${BASE_CKPT_DIR}/iter_*" >/dev/null 2>&1
+}
 if [[ -z "${INIT_CHECKPOINT}" ]]; then
-    if [[ ! -d "${BASE_ITER_DIR}" ]]; then
-        echo "Base Megatron checkpoint not found at ${BASE_ITER_DIR}; creating one from ${MODEL_ID}"
+    if ! base_checkpoint_ready; then
+        echo "Base Megatron checkpoint not found under ${BASE_CKPT_DIR}; creating one from ${MODEL_ID}"
         HF_MODEL_DIR="${HF_MODEL_DIR:-${SCRIPT_DIR}/llama3.2-1b/hf_snapshot}"
         if [[ ! -f "${HF_MODEL_DIR}/config.json" ]]; then
             echo "Downloading Hugging Face weights to ${HF_MODEL_DIR}"
@@ -120,19 +121,36 @@ snapshot_download(
 PY
         fi
 
-        python3 /workspace/Megatron-LM/tools/checkpoint/convert.py \
-            --model-type GPT \
-            --loader llama_mistral \
-            --checkpoint-type hf \
-            --model-size ${CONVERT_MODEL_SIZE:-llama3-8Bf} \
-            --load-dir ${HF_MODEL_DIR} \
-            --tokenizer-model ${DATA_DIR}/tokenizer.model \
-            --saver megatron \
-            --save-dir ${BASE_CKPT_DIR} \
-            --target-tensor-parallel-size 8 \
-            --target-pipeline-parallel-size 1 \
-            --megatron-path /workspace/Megatron-LM \
-            --loader-transformer-impl transformer_engine
+        rm -rf "${BASE_CKPT_DIR}"
+        mkdir -p "${BASE_CKPT_DIR}"
+
+        CONVERT_TRANSFORMER_IMPL="${CONVERT_TRANSFORMER_IMPL:-local}"
+        CONVERT_TP_SIZE="${CONVERT_TP_SIZE:-1}"
+        CONVERT_PP_SIZE="${CONVERT_PP_SIZE:-1}"
+        CONVERT_CMD=(
+            python3 /workspace/Megatron-LM/tools/checkpoint/convert.py
+            --model-type GPT
+            --loader llama_mistral
+            --checkpoint-type hf
+            --model-size ${CONVERT_MODEL_SIZE:-llama3-8Bf}
+            --load-dir ${HF_MODEL_DIR}
+            --tokenizer-model ${DATA_DIR}
+            --saver mcore
+            --save-dir ${BASE_CKPT_DIR}
+            --target-tensor-parallel-size ${CONVERT_TP_SIZE}
+            --target-pipeline-parallel-size ${CONVERT_PP_SIZE}
+            --megatron-path /workspace/Megatron-LM
+            --loader-transformer-impl ${CONVERT_TRANSFORMER_IMPL}
+        )
+        if [[ "${CONVERT_SEQUENCE_PARALLEL:-}" == "1" ]] || [[ ${CONVERT_TP_SIZE} -gt 1 ]]; then
+            CONVERT_CMD+=(--sequence-parallel)
+        fi
+
+        "${CONVERT_CMD[@]}"
+        if ! base_checkpoint_ready; then
+            echo "ERROR: Megatron checkpoint conversion did not produce an iteration directory in ${BASE_CKPT_DIR}." >&2
+            exit 1
+        fi
     fi
     INIT_CHECKPOINT=${BASE_CKPT_DIR}
 fi
@@ -152,6 +170,7 @@ echo "Global batch size: ${GLOBAL_BATCH_SIZE}"
 echo "Micro batch size: ${MICRO_BATCH_SIZE}"
 echo "Training steps: ${TRAINING_STEPS}"
 echo "Eval interval: ${EVAL_INTERVAL}"
+echo "Save interval (steps): ${SAVE_INTERVAL_STEPS}"
 echo "Checkpoint root: ${CHECKPOINT_ROOT}"
 echo "Seq length: ${SEQ_LENGTH}"
 echo "Max position embeddings: ${MAX_POSITION_EMBEDDINGS}"
@@ -174,7 +193,7 @@ MODEL_ARGS="\
 --ffn-hidden-size ${FFN_HIDDEN_SIZE} \
 --num-attention-heads 32 \
 --group-query-attention \
---num-query-groups 4 \
+--num-query-groups ${NUM_QUERY_GROUPS:-8} \
 --seq-length ${SEQ_LENGTH} \
 --max-position-embeddings ${MAX_POSITION_EMBEDDINGS} \
 --position-embedding-type rope \
@@ -189,11 +208,11 @@ MODEL_ARGS="\
 TRAINING_ARGS="\
 --micro-batch-size ${MICRO_BATCH_SIZE} \
 --global-batch-size ${GLOBAL_BATCH_SIZE} \
---train-samples ${TOTAL_SAMPLES} \
+--train-iters ${TRAINING_STEPS} \
 --lr ${LR} \
 --min-lr ${MIN_LR} \
 --lr-decay-style cosine \
---lr-decay-samples ${TOTAL_SAMPLES} \
+--lr-decay-iters ${TRAINING_STEPS} \
 --lr-warmup-fraction 0.01 \
 --clip-grad 1.0 \
 --weight-decay 0.01 \
@@ -213,7 +232,7 @@ COMPUTE_ARGS="\
 
 CHECKPOINT_ARGS="\
 --save ${SAVE_PATH} \
---save-interval ${SAVE_INTERVAL_SAMPLES}"
+--save-interval ${SAVE_INTERVAL_STEPS}"
 
 LOG_ARGS="\
 --log-interval 1 \
