@@ -29,3 +29,10 @@ model = AutoModelForCausalLM.from_pretrained('/path/to/moe/export', trust_remote
 
 Without `trust_remote_code=True` the loader falls back to the dense GPT-2 architecture and reports uninitialised parameter warnings.
 
+
+## Qwen3-0.6B SFT
+
+- Run `qwen3-0.6b/02-generate.sh` to mirror the latest datasets into MegaBlocks format. The script copies tokenizer assets from the cached `Qwen/Qwen3-0.6B` snapshot and calls the shared generator with the model's chat template when available.
+- Launch fine-tuning with `qwen3-0.6b/03-train-dense.sh`. The wrapper feeds the new `03-megablocks-qwen3-0.6b.sh` launcher which applies the Qwen rotary/RMSNorm/SwiGLU defaults and accepts an optional `INIT_CHECKPOINT` for warm starts.
+
+
