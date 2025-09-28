@@ -20,7 +20,7 @@ DATA_DIR="${DATA_DIR:-${SCRIPT_DIR}/llama3.2-1b/data}"
 DATA_DIR=${DATA_DIR%/}
 DATA_PREFIX="${DATA_PREFIX:-sft.shisa-v2.1_text_document}"
 EVALS_PER_EPOCH=${EVALS_PER_EPOCH:-4}
-MODEL_ID="${BASE_HF_MODEL:-meta-llama/Llama-3.2-8B-Instruct}"
+MODEL_ID="${BASE_HF_MODEL:-meta-llama/Llama-3.2-1B-Instruct}"
 INIT_CHECKPOINT="${INIT_CHECKPOINT:-}"
 
 mkdir -p "${CHECKPOINT_ROOT}"
@@ -88,18 +88,44 @@ if [[ -d "${SAVE_PATH}" ]]; then
 fi
 mkdir -p "${SAVE_PATH}"
 
+TOKENIZER_DIR="${DATA_DIR}"
+if [[ ! -f "${TOKENIZER_DIR}/tokenizer.json" ]]; then
+    echo "ERROR: Expected Hugging Face tokenizer files in ${TOKENIZER_DIR}. Run 02-generate.sh first." >&2
+    exit 1
+fi
+
 # Ensure base Megatron checkpoint is available when not explicitly provided
 BASE_CKPT_DIR="${BASE_CKPT_DIR:-${SCRIPT_DIR}/llama3.2-1b/base_tp8_pp1}"
 BASE_ITER_DIR="${BASE_CKPT_DIR}/iter_0000000"
 if [[ -z "${INIT_CHECKPOINT}" ]]; then
     if [[ ! -d "${BASE_ITER_DIR}" ]]; then
         echo "Base Megatron checkpoint not found at ${BASE_ITER_DIR}; creating one from ${MODEL_ID}"
+        HF_MODEL_DIR="${HF_MODEL_DIR:-${SCRIPT_DIR}/llama3.2-1b/hf_snapshot}"
+        if [[ ! -f "${HF_MODEL_DIR}/config.json" ]]; then
+            echo "Downloading Hugging Face weights to ${HF_MODEL_DIR}"
+            MODEL_ID="${MODEL_ID}" HF_MODEL_DIR="${HF_MODEL_DIR}" python3 - <<'PY'
+import os
+from pathlib import Path
+from huggingface_hub import snapshot_download
+
+model_id = os.environ["MODEL_ID"]
+target = Path(os.environ["HF_MODEL_DIR"]).resolve()
+target.mkdir(parents=True, exist_ok=True)
+
+snapshot_download(
+    repo_id=model_id,
+    local_dir=target,
+    local_dir_use_symlinks=False,
+)
+PY
+        fi
+
         python3 /workspace/Megatron-LM/tools/checkpoint/convert.py \
             --model-type GPT \
             --loader llama_mistral \
             --checkpoint-type hf \
-            --model-size llama3-8Bf \
-            --loader-hf-path ${MODEL_ID} \
+            --model-size ${CONVERT_MODEL_SIZE:-llama3-8Bf} \
+            --load-dir ${HF_MODEL_DIR} \
             --tokenizer-model ${DATA_DIR}/tokenizer.model \
             --saver megatron \
             --save-dir ${BASE_CKPT_DIR} \
@@ -109,12 +135,6 @@ if [[ -z "${INIT_CHECKPOINT}" ]]; then
             --loader-transformer-impl transformer_engine
     fi
     INIT_CHECKPOINT=${BASE_CKPT_DIR}
-fi
-
-TOKENIZER_DIR="${DATA_DIR}"
-if [[ ! -f "${TOKENIZER_DIR}/tokenizer.json" ]]; then
-    echo "ERROR: Expected Hugging Face tokenizer files in ${TOKENIZER_DIR}. Run 02-generate.sh first." >&2
-    exit 1
 fi
 
 DATA_PATH="${DATA_DIR}/${DATA_PREFIX}"

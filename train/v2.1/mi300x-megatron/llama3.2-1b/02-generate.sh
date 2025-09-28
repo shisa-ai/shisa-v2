@@ -21,13 +21,18 @@ model_id = os.environ["MODEL_ID"]
 target_dir = Path(os.environ["TARGET_DIR"]).resolve()
 target_dir.mkdir(parents=True, exist_ok=True)
 
-patterns = [
-    "tokenizer.json",
-    "tokenizer_config.json",
-    "vocab.json",
-    "tokenizer.model",
-    "merges.txt",
-]
+# Map repository-relative source paths to destination filenames.
+file_map = {
+    "tokenizer.json": "tokenizer.json",
+    "tokenizer_config.json": "tokenizer_config.json",
+    "vocab.json": "vocab.json",
+    "tokenizer.model": "tokenizer.model",
+    "original/tokenizer.model": "tokenizer.model",
+    "merges.txt": "merges.txt",
+    "original/merges.txt": "merges.txt",
+}
+
+patterns = list(file_map.keys())
 
 try:
     snapshot_path = snapshot_download(model_id, local_files_only=True, allow_patterns=patterns)
@@ -35,11 +40,11 @@ except Exception:
     snapshot_path = snapshot_download(model_id, local_files_only=False, allow_patterns=patterns)
 
 snapshot_path = Path(snapshot_path)
-for name in patterns:
-    src = snapshot_path / name
+for src_name, dest_name in file_map.items():
+    src = snapshot_path / src_name
     if not src.exists():
         continue
-    dst = target_dir / name
+    dst = target_dir / dest_name
     if dst.exists() and dst.samefile(src):
         continue
     shutil.copy2(src, dst)
