@@ -35,4 +35,20 @@ Without `trust_remote_code=True` the loader falls back to the dense GPT-2 archit
 - Run `qwen3-0.6b/02-generate.sh` to mirror the latest datasets into MegaBlocks format. The script copies tokenizer assets from the cached `Qwen/Qwen3-0.6B` snapshot and calls the shared generator with the model's chat template when available.
 - Launch fine-tuning with `qwen3-0.6b/03-train-dense.sh`. The wrapper feeds the new `03-megablocks-qwen3-0.6b.sh` launcher which applies the Qwen rotary/RMSNorm/SwiGLU defaults and accepts an optional `INIT_CHECKPOINT` for warm starts.
 
+## Llama3.2-1B SFT
+
+- Run `llama3.2-1b/02-generate.sh` to materialise the shared SFT dataset with the model’s native tokenizer and chat template.
+- Kick off Megatron fine-tuning via `llama3.2-1b/03-train-dense.sh`; this wraps `03-megablocks-llama3.2-1b.sh` and uses GBS=128, LR=2.83e-05, rope scaling, and RMSNorm defaults from the HF config.
+
+## Megatron Checkpoint Conversion (ROCm build)
+
+The ROCm fork ships converter plugins for these HF checkpoint families:
+- Llama 2 (7B/13B/70B) & Llama 3 / 3.1 (8B/70B, base & instruct)
+- Mistral 7B (base & instruct)
+- Yi 34B
+- Qwen2.5 7B / 72B (base & instruct)
+- Mixtral 8×7B (via `loader_mixtral_hf.py`)
+
+Missing plugins (`loader_hf`, `loader_qwen3_hf`, etc.) mean other architectures require manual conversion or an upstream plugin drop-in before our scripts can auto-convert HF weights.
+
 
