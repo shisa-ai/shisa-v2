@@ -33,7 +33,8 @@ Without `trust_remote_code=True` the loader falls back to the dense GPT-2 archit
 ## Qwen3-0.6B SFT
 
 - Run `qwen3-0.6b/02-generate.sh` to mirror the latest datasets into MegaBlocks format. The script copies tokenizer assets from the cached `Qwen/Qwen3-0.6B` snapshot and calls the shared generator with the model's chat template when available.
-- Launch fine-tuning with `qwen3-0.6b/03-train-dense.sh`. The wrapper feeds the new `03-megablocks-qwen3-0.6b.sh` launcher which applies the Qwen rotary/RMSNorm/SwiGLU defaults and accepts an optional `INIT_CHECKPOINT` for warm starts.
+- Launch fine-tuning with `qwen3-0.6b/03-train-dense.sh`. The wrapper feeds the updated `03-megablocks-qwen3-0.6b.sh`, which now mirrors the Llama workflow: it stages the upstream HF weights under `qwen3-0.6b/hf_snapshot/`, converts them with the custom `loader_qwen3_hf` plugin (writing `base_tp8_pp1/iter_0000001` via the mcore saver), and only then starts Megatron. Pass `BASE_CKPT_DIR`, `HF_MODEL_DIR`, or `INIT_CHECKPOINT` to override any part of the warm-start path.
+- Training is iteration-based and uses Megatron’s Qwen-specific knobs out of the box (`--group-query-attention`, `--kv-channels 128`, `--qk-layernorm`). `KV_CHANNELS` and `NUM_QUERY_GROUPS` remain configurable, but default to values that keep the fused QKV projection compatible with the 0.6B checkpoint and avoid the earlier Q/K/V shape mismatch.
 
 ## Llama3.2-1B SFT
 
@@ -53,5 +54,4 @@ The ROCm fork ships converter plugins for these HF checkpoint families:
 - Qwen2.5 7B / 72B (base & instruct)
 - Mixtral 8×7B (via `loader_mixtral_hf.py`)
 
-Missing plugins (`loader_hf`, `loader_qwen3_hf`, etc.) mean other architectures require manual conversion or an upstream plugin drop-in before our scripts can auto-convert HF weights.
-
+Missing plugins (`loader_hf`, etc.) mean other architectures require manual conversion or an upstream plugin drop-in before our scripts can auto-convert HF weights.
