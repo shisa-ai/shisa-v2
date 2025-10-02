@@ -1,0 +1,75 @@
+# Axolotl DPO configuration for Qwen3 30B-A3B on 8x MI300X applying shisa-v2.1 preference data
+# mbs=2 ; sequence_len=4096 ; adamw_torch_8bit ; zero2_moe_offload.json ; 5/2177 [09:37<66:31:00, 110.25s/it] (170GB)
+# mbs=16 ; lr 4.08e-07 ; sequence_len=4096 ; adamw_torch_8bit ; zero3_bf16.json ; 5/1089 [12:16<43:22:59, 144.08s/it] (160GB)
+# mbs=32 ; lr 8.16e-07 ; sequence_len=2048 ; adamw_torch_8bit ; zero3_bf16.json ; 4/545 [10:09<22:22:34, 148.90s/it] (170GB)
+
+base_model: /data/outputs/094-qwen3-30b-a3b-v2.1-sft/checkpoint-1188
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+rl: dpo
+datasets:
+  - path: ./dpo.shisa-v2.1.jsonl
+    split: train
+    field_chosen: chosen
+    field_rejected: rejected
+
+skip_prepare_dataset: true
+dataset_prepared_path: cached_formatted_dataset/096-qwen3-30b-a3b-v2.1-dpo
+val_set_size: 0
+output_dir: /data/outputs/096-qwen3-30b-a3b-v2.1-dpo
+
+sequence_len: 2048
+sample_packing: false
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+rl_beta: 0.1
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 096-qwen3-30b-a3b-v2.1-dpo
+
+gradient_accumulation_steps: 1
+micro_batch_size: 32
+num_epochs: 1
+optimizer: adamw_torch_8bit
+lr_scheduler: constant_with_warmup
+learning_rate: 8.16e-07
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+evals_per_epoch: 0
+saves_per_epoch: 0
+save_total_limit: 1
+
+precompute_ref_log_probs: false
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
