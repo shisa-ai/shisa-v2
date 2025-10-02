@@ -75,7 +75,8 @@ def get_common_sizes():
         0.6e9,    # Qwen3 0.6B
         1e9,      # 1B
         3e9,      # 3B
-        3.84e9,   # 4B
+        3.84e9,   # 3.8B
+        4e9,   # 4B
         8e9,      # Llama 3 8B
         12e9,     # Llama 3 12B
         14e9,     # Llama 3 14B
