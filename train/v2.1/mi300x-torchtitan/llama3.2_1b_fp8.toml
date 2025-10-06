@@ -1,0 +1,84 @@
+# Llama 3.2 1B SFT on 8x MI300X with Float8 quantization (matches shisa-v2.1 recipe)
+
+[job]
+dump_folder = "./outputs"
+description = "Llama 3.2 1B SFT FP8 (shisa-v2.1)"
+
+[profiling]
+enable_profiling = false
+save_traces_folder = "profile_trace"
+profile_freq = 100
+
+[metrics]
+log_freq = 1
+enable_tensorboard = true
+save_tb_folder = "tb"
+enable_wandb = false
+
+[model]
+name = "llama3"
+flavor = "1B"
+hf_assets_path = "/root/.cache/huggingface/hub/models--meta-llama--Llama-3.2-1B-Instruct/snapshots/9213176726f574b556790deb65791e0c5aa438b6"
+
+[optimizer]
+name = "adamw_torchao_8bit"
+lr = 2.83e-5
+beta1 = 0.9
+beta2 = 0.95
+eps = 1e-8
+weight_decay = 0.0
+implementation = "for-loop"
+
+[lr_scheduler]
+warmup_steps = 256
+decay_type = "linear"
+min_lr_factor = 1.0
+
+[training]
+local_batch_size = 16
+global_batch_size = 128
+seq_len = 8192
+max_norm = 1.0
+steps = 8500
+dataset = "shisa_v21_sft"
+dataset_path = "../cached_formatted_dataset"
+dtype = "bfloat16"
+mixed_precision_param = "bfloat16"
+mixed_precision_reduce = "float32"
+gc_freq = 100
+seed = 42
+
+[parallelism]
+data_parallel_replicate_degree = 1
+data_parallel_shard_degree = 8
+tensor_parallel_degree = 1
+pipeline_parallel_degree = 1
+context_parallel_degree = 1
+
+[checkpoint]
+enable = true
+folder = "checkpoint"
+interval = 1000
+last_save_model_only = true
+export_dtype = "bfloat16"
+async_mode = "disabled"
+
+[compile]
+enable = false
+components = ["model", "loss"]
+
+[activation_checkpoint]
+mode = "full"
+selective_ac_option = "op"
+
+[quantize.dense.float8]
+enable_fsdp_float8_all_gather = true
+precompute_float8_dynamic_scale_for_fsdp = true
+filter_fqns = ["output"]
+emulate = true
+
+[validation]
+enable = false
+dataset = "shisa_v21_sft"
+freq = 500
+steps = 100
