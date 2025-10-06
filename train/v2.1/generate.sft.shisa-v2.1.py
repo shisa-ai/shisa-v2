@@ -56,7 +56,9 @@ def main():
             "split": "train",
         },
         {
-            "dataset_path": "shisa-ai/translation_set_april_6",
+
+            # "dataset_path": "shisa-ai/translation_set_april_6",
+            "dataset_path": "shisa-ai/translation_set_rejection_sampling",
             "field_messages": "conversations",
             "split": "train[:25%]",
         },
