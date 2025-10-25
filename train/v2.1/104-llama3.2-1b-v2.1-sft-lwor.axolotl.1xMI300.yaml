@@ -1,0 +1,96 @@
+# Axolotl LoRA Without Regrets configuration for Llama 3.2 1B on 1x MI300X
+# Based on https://thinkingmachines.ai/blog/lora/
+base_model: meta-llama/Llama-3.2-1B-Instruct
+
+# LoRA configuration (full precision base model)
+adapter: lora
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+# LoRA hyperparameters - "LoRA Without Regret" settings
+lora_r: 64                   # start at 64; increase to 128 if loss plateaus early
+lora_alpha: 32               # per Thinking Machines experiments
+lora_dropout: 0.0
+
+# Apply to attention + MLP (critical for parity with FFT)
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - up_proj
+  - down_proj
+  - gate_proj
+
+chat_template: tokenizer_default
+datasets:
+  - path: ./sft.shisa-v2.1.jsonl
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - assistant
+        - gpt
+        - model
+      user:
+        - user
+        - human
+    roles_to_train: ["assistant"]
+
+dataset_prepared_path:
+val_set_size: 0
+output_dir: /data/outputs/104-llama3.2-1b-v2.1-sft-lwor
+
+sequence_len: 8192
+sample_packing: true
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 104-llama3.2-1b-v2.1-sft-lwor
+
+# LoRA prefers ~10x higher LR than FFT and smaller batches
+# FFT was 2.83e-05, so we use ~10x = 2.83e-04
+# Reducing batch size as LoRA is less tolerant of large batches
+gradient_accumulation_steps: 1
+micro_batch_size: 128
+num_epochs: 3
+optimizer: adamw_torch_8bit
+lr_scheduler: constant       # LoRA Without Regret uses constant LR
+learning_rate: 2.83e-04      # ~10x FFT learning rate
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.0            # constant LR schedule, no warmup
+saves_per_epoch: 1
+save_total_limit: 3
+
+weight_decay: 1e-4
+special_tokens:
+  pad_token: <|end_of_text|>
