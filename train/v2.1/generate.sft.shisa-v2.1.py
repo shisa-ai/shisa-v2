@@ -26,6 +26,30 @@ def main():
     # object with (at least) a 'conversations' column, or None if failed.
 
     datasets_config = [
+        # 2025-10-22 - 2.3K - Addresses
+        {
+            "dataset_path": "shisa-ai/shisa-v2.1-place-names-sft",
+            "field_messages": "conversations",
+            "split": "train",
+        },
+        # 2025-10-09 - 10K - Replaces April rewild-set-deepseek-subset
+        {
+            "dataset_path": "shisa-ai/rewild-202510-bestofn-subset",
+            "field_messages": "conversations",
+            "split": "train",
+        },
+        # 2025-10-07 WIP (combined, not yet rejection sampled)
+        {
+            "dataset_path": "shisa-ai/instruction-following-sft-combined-20251010",
+            "field_messages": "conversations",
+            "split": "train[:50%]",
+        },
+        # 2025-09-23: 13.9K/55.5K - replaces April set
+        {
+            "dataset_path": "shisa-ai/translation_set_rejection_sampling",
+            "field_messages": "conversations",
+            "split": "train[:25%]",
+        },
         # 2025-08-12: 1.18K rows - Proper Politeness
         {
             "dataset_path": "shisa-ai/shisa-politeness-dataset",
@@ -54,18 +78,6 @@ def main():
             "dataset_path": "shisa-ai/shisa-v2-roleplaying-sft",
             "field_messages": "conversations",
             "split": "train",
-        },
-        {
-
-            # "dataset_path": "shisa-ai/translation_set_april_6",
-            "dataset_path": "shisa-ai/translation_set_rejection_sampling",
-            "field_messages": "conversations",
-            "split": "train[:25%]",
-        },
-        {
-            "dataset_path": "shisa-ai/rewild-set-deepseek-subset",
-            "field_messages": "conversations",
-            "split": "train[:25%]",
         },
         {
             "dataset_path": "shisa-ai/magpie-ultra-set",

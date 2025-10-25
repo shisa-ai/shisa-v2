@@ -80,9 +80,9 @@ def main():
 
 
     # --- Process Shisa Instruction Following DPO ---
-    print(f"Processing shisa-ai/shisa-v2-instruction-following-dpo...")
+    print(f"Processing shisa-ai/instruction-following-dpo-combined-20251010...")
     try:
-        ds_if = load_dataset("shisa-ai/shisa-v2-instruction-following-dpo", split="train[:50%]")
+        ds_if = load_dataset("shisa-ai/instruction-following-dpo-combined-20251010", split="train[:25%]")
 
         def to_dpo_format_if(example):
             conv = example["conversations"]
