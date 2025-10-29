@@ -1,0 +1,132 @@
+# Axolotl SFT configuration for Ring-mini-2.0 (MoE) on 1x MI300X
+# Ring-mini-2.0: 16.8B total params, 1.4B activated params, 128K context
+#
+# PERFORMANCE NOTE: MoE training in transformers/axolotl is ~10x slower than Megatron-LM
+# due to unoptimized expert routing (uses for-loops instead of grouped GEMM).
+# For production training, consider using Megatron. See: reference.Ring-V2/examples/sft/megatron/
+#
+# QWEN3-MOE-FUSED INCOMPATIBILITY: Ring uses bailing_moe_v2 with hierarchical group-based
+# routing (256 experts, 8 groups, topk_group selection) which is incompatible with
+# qwen3-moe-fused optimizations (designed for simple top-k routing). A custom fused kernel
+# would need to be written specifically for Ring's two-stage expert selection mechanism.
+#
+# The tokenizer includes the bailing_v2 chat template with support for:
+# - Role tags: <role>SYSTEM/HUMAN/ASSISTANT/OBSERVATION</role>
+# - Thinking mode control: "detailed thinking on/off" (REQUIRED in system prompt)
+# - Tool calling with <tool_call> and <tool_response> tags
+base_model: inclusionAI/Ring-mini-2.0
+
+trust_remote_code: true
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+# MoE-specific configuration
+model_config:
+  output_router_logits: true
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+
+# ============================================================================
+# THINKING MODE CONFIGURATION (IMPORTANT!)
+# ============================================================================
+# Ring-mini-2.0 REQUIRES "detailed thinking off" or "detailed thinking on" in
+# the system prompt. The LLaMA-Factory patch automatically adds this, but
+# Axolotl does not - you must handle it in your dataset preprocessing.
+#
+# For "thinking off" training (recommended for standard SFT):
+# Ensure EVERY conversation in your dataset has a system message with
+# "detailed thinking off" appended.
+#
+# Example preprocessing approaches:
+#
+# 1. If no system message exists, add one:
+#    {"role": "system", "content": "detailed thinking off"}
+#
+# 2. If system message exists but lacks thinking directive:
+#    {"role": "system", "content": "You are helpful\ndetailed thinking off"}
+#
+# 3. Python preprocessing example:
+#    for conv in conversations:
+#        if conv[0]["role"] != "system":
+#            conv.insert(0, {"role": "system", "content": "detailed thinking off"})
+#        elif "thinking" not in conv[0]["content"]:
+#            conv[0]["content"] += "\ndetailed thinking off"
+#
+# ============================================================================
+
+datasets:
+  - path: ./sft.shisa-v2.1.jsonl
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - assistant
+        - gpt
+        - model
+      user:
+        - user
+        - human
+    roles_to_train: ["assistant"]
+
+dataset_prepared_path:
+val_set_size: 0
+output_dir: /data/outputs/106-ring-mini-2.0-v2.1-sft
+
+sequence_len: 8192
+sample_packing: true
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 106-ring-mini-2.0-v2.1-sft
+
+# MoE models have ~1.4B activated params (similar to 1B models)
+# but 16.8B total params requires more memory
+# Using smaller batch size for single MI300X
+# LR is tuned for GBS 128
+# GBS 128 = 1 GPU x 16 MBS x 8 GAS
+gradient_accumulation_steps: 32
+micro_batch_size: 4
+num_epochs: 3
+optimizer: adamw_torch_4bit
+lr_scheduler: cosine
+learning_rate: 2.5e-05
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+saves_per_epoch: 1
+save_total_limit: 3
+
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
+  # Ring tokenizer uses <|endoftext|> for pad and <|role_end|> for eos
+  pad_token: <|endoftext|>
