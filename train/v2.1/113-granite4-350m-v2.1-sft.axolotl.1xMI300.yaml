@@ -1,0 +1,82 @@
+# Axolotl SFT configuration for Qwen3 30B-A3B on 1x MI300X
+# Qwen3-30B-A3B-Instruct-2507: 30B params with hybrid attention (H2O)
+# Based on 106-ring-mini-2.0 config structure with Qwen3 model and LR from 095
+base_model: ibm-granite/granite-4.0-350m
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+
+datasets:
+  - path: ./sft.shisa-v2.1.jsonl
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - assistant
+        - gpt
+        - model
+      user:
+        - user
+        - human
+    roles_to_train: ["assistant"]
+
+dataset_prepared_path:
+val_set_size: 0
+output_dir: /data/outputs/113-granite4-350m-v2.1-sft
+
+sequence_len: 8192
+sample_packing: true
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 113-granite4-450m-v2.1-sft
+
+# Single MI300X configuration
+# Using 095's learning rate (1.63e-05) for Qwen3 model
+# GBS 128 = 1 GPU x 4 MBS x 32 GAS
+gradient_accumulation_steps: 1
+micro_batch_size: 128
+num_epochs: 3
+optimizer: adamw_torch_4bit
+lr_scheduler: cosine
+learning_rate: 4.8e-05
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+saves_per_epoch: 1
+save_total_limit: 3
+
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
