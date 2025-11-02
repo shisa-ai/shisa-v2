@@ -22,8 +22,8 @@ load_in_4bit: false
 strict: false
 
 # Explicitly choose the HIP backend for MoE experts.
-# On MI300X goes from ~1260 tok/s to 5450 tok/s
-# memory usage from 163GB to 111GB (can increase batchsize?)
+# On MI300X goes from ~1260 tok/s to 3300 tok/s (2.6X)
+# memory usage from 163GB to 150GB
 mlp_impl: megablocks
 use_grouped_moe_kernels: true
   #
