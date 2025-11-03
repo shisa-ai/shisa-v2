@@ -9,7 +9,7 @@ from tqdm import tqdm
 # Main Execution Block - Configure Datasets Here
 # ==============================================================================
 
-OUTPUT = 'sft.shisa-v2.1'
+OUTPUT = 'sft.shisa-v2.1c'
 
 def main():
     """
@@ -44,11 +44,11 @@ def main():
             "field_messages": "conversations",
             "split": "train[:50%]",
         },
-        # 2025-09-23: 13.9K/55.5K - replaces April set
+        # 2025-09-23: 100% instead of 50% for 2.1c! 13.9K/55.5K - replaces April set
         {
             "dataset_path": "shisa-ai/translation_set_rejection_sampling",
             "field_messages": "conversations",
-            "split": "train[:25%]",
+            "split": "train", # "train[:25%]",
         },
         # 2025-08-12: 1.18K rows - Proper Politeness
         {
@@ -62,11 +62,11 @@ def main():
             "field_messages": "conversations",
             "split": "train",
         },
-        # 2025-06-18: 12.8K/51.2K rows of Chotto formatted multi-turn translations
+        # 2025-06-18: 100% instead of 25% 12.8K/51.2K rows of Chotto formatted multi-turn translations
         {
             "dataset_path": "shisa-ai/chotto_translation_set_sft",
             "field_messages": "conversations",
-            "split": "train[:25%]",
+            "split": "train", # "train[:25%]",
         },
         # 2025-06-17: 181K rows - Latest (+Shisa V2 405B) rejection sampled version of primary dataset
         {
