@@ -14,7 +14,7 @@ liger_fused_linear_cross_entropy: true
 
 chat_template: tokenizer_default
 datasets:
-  - path: ./sft.shisa-v2.1c.jsonl
+  - path: ./sft.shisa-v2.1.jsonl
     type: chat_template
     field_messages: conversations
     message_property_mappings:
@@ -32,7 +32,7 @@ datasets:
         - human
     roles_to_train: ["assistant"]
 
-dataset_prepared_path: data/118
+dataset_prepared_path: data/117
 val_set_size: 0
 output_dir: /data/outputs/118-llama3.2-1b-v2.1-sft
 
@@ -54,7 +54,7 @@ micro_batch_size: 128
 num_epochs: 3
 optimizer: adamw_torch_8bit
 lr_scheduler: cosine
-learning_rate: 2.83e-05
+learning_rate: 6.0e-05
 
 train_on_inputs: false
 group_by_length: false
