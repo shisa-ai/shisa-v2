@@ -10,7 +10,7 @@ strict: false
 chat_template: tokenizer_default
 
 datasets:
-  - path: ./sft.shisa-v2.1.jsonl
+  - path: ./sft.shisa-v2.1c.jsonl
     type: chat_template
     field_messages: conversations
     message_property_mappings:
