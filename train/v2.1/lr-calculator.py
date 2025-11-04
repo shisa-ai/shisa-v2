@@ -74,6 +74,7 @@ def get_common_sizes():
         0.27e9,   # Gemma-3 270M
         0.6e9,    # Qwen3 0.6B
         1e9,      # 1B
+        1.4e9,    # 1.4B
         3e9,      # 3B
         3.84e9,   # 3.8B
         4e9,   # 4B
