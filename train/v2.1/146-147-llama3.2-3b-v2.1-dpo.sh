@@ -12,15 +12,15 @@ NUM_GPUS=8
 # MODELS
 ORIG_MODEL=${ORIG_MODEL:-"meta-llama/Llama-3.2-3B-Instruct"}
 
-SFT_CKPT=${SFT_CKPT:-"042-llama3.2-3b-v2new-sft"}
-SFT_DATA="sft.shisa-v2-new.jsonl"
+SFT_CKPT=${SFT_CKPT:-"146-llama3.2-3b-v2.1-sft"}
+SFT_DATA="sft.shisa-v2.1.jsonl"
 SFT_LR=${SFT_LR:-1.6e-5}
-SFT_MBS=32
+SFT_MBS=4
 
-DPO_CKPT=${DPO_CKPT:-"043-llama3.2-3b-v2new-dpo405b"}
-DPO_DATA="shisa-ai/shisa-v2-dpo405b-shuffled"
+DPO_DATA="dpo.shisa-v2.1.jsonl"
 DPO_LR=${DPO_LR:-2.0e-7}
-DPO_MBS=32
+DPO_MBS=4
+
 
 # SFT
 deepspeed --num_gpus $NUM_GPUS --module openrlhf.cli.train_sft \
