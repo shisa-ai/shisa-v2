@@ -63,7 +63,7 @@ neftune_noise_alpha: 5
 
 use_wandb: true
 wandb_entity: augmxnt
-wandb_project: chotto
+wandb_project: shisa-v2.1
 wandb_name: 125-unphi4-14b-sft2.1-1ep
 
 # GBS=128 / 8 GPU / MBS=16 => GAS=1
