@@ -82,7 +82,7 @@ def main():
     # --- Process Shisa Instruction Following DPO ---
     print(f"Processing shisa-ai/instruction-following-dpo-combined-20251010...")
     try:
-        ds_if = load_dataset("shisa-ai/instruction-following-dpo-combined-20251010", split="train[:25%]")
+        ds_if = load_dataset("shisa-ai/instruction-following-dpo-combined-20251010", split="train[:20%]")
 
         def to_dpo_format_if(example):
             conv = example["conversations"]
@@ -104,7 +104,7 @@ def main():
     # --- Process Chotto Translation DPO ---
     print(f"Processing shisa-ai/chotto_translation_set_dpo...")
     try:
-        ds_chotto = load_dataset("shisa-ai/chotto_translation_set_dpo", split="train")
+        ds_chotto = load_dataset("shisa-ai/chotto_translation_set_dpo", split="train[10%]")
 
         def to_dpo_format_chotto(example):
             return {
