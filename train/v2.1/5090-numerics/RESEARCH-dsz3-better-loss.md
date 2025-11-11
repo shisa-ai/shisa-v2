@@ -1,0 +1,29 @@
+# Why the ZeRO-3 run converges better
+
+## What changed between the two configs
+- The only mechanical difference is that `1xMI300-adamw_torch_8bit-liger-ds.yaml` points `deepspeed` at `zero3_bf16.json`, which requests ZeRO stage 3, bf16 math, and lets DeepSpeed fill in the batch/clip values marked `"auto"` (`zero3_bf16.json:1-22`). The non-`ds` YAML leaves `deepspeed:` unset, so it stays on vanilla Hugging Face/Accelerate.
+- During the ZeRO run Axolotl persists a DeepSpeed config alongside the run artifacts (`wandb/run-20251111_143619-hap954mv/files/tmp/deepspeed_config_8qmfqjif.json:1-22`), while the non-ZeRO run (`wandb/run-20251111_131053-bjsf8tlt/files/tmp/axolotl_config_y8_phpy0.yml`) has no such companion file. The training logs show both jobs share the same dataset/optimizer hyper-parameters, so any loss gap must stem from the runtime stack rather than the YAML itself (`wandb/run-20251111_143619-hap954mv/files/output.log:1-17` vs `wandb/run-20251111_131053-bjsf8tlt/files/output.log:1-17`).
+
+## How Axolotl hands control to DeepSpeed
+- When the `deepspeed` key is populated, the causal builder injects that path straight into the Hugging Face `TrainingArguments`, so the downstream trainer switches into the DeepSpeed integration (`axolotl/core/builders/causal.py:168-171`).
+- Axolotl still tells Hugging Face to use whatever optimizer string sits in the config (`optimizer: adamw_torch_8bit`), by writing `training_arguments_kwargs["optim"] = self.cfg.optimizer` (`axolotl/core/builders/base.py:342-358`). This means both configs ask for the `torchao` 8‑bit AdamW implementation.
+
+## Hugging Face’s DeepSpeed glue keeps the same optimizer class
+- Inside `transformers` the DeepSpeed shim notices that the user did not supply an `optimizer` block inside the JSON, so it simply calls the trainer’s `create_optimizer()` and flips `zero_allow_untested_optimizer` to `true` before launching ZeRO (`transformers/integrations/deepspeed.py:360-394`). That is why you see `**** You are using ZeRO with an untested optimizer ****` in the log.
+- The trainer’s factory maps `adamw_torch_8bit` to `torchao.optim.AdamW8bit`, so both runs do instantiate the same optimizer class (`transformers/trainer.py:1740-1759`).
+- DeepSpeed classifies supported optimizers explicitly (Adam/AdamW/FusedAdam/DeepSpeedCPUAdam/etc.), and anything else—like `torchao.optim.AdamW8bit`—falls outside that allowlist, which triggers the warning unless `zero_allow_untested_optimizer` is enabled (`deepspeed/runtime/zero/utils.py:43-67`, `deepspeed/runtime/engine.py:1384-1394`).
+
+## What ZeRO-3 actually changes
+- Stage 3 creates full-precision master copies of every parameter shard before initializing optimizer state. `_setup_for_real_optimizer()` calls `_create_fp32_partitions()` right away, building tensors with `.clone().float().detach()` even when the model itself is bf16 (`deepspeed/runtime/zero/stage3.py:541-575` and `deepspeed/runtime/zero/stage3.py:852-929`).
+- During every optimizer step, ZeRO swaps the base optimizer’s `param_groups` to point at those fp32 partitions, runs `optimizer.step()` on the fp32 buffer, then copies the updated fp32 values back into the fp16/bf16 model shards (`deepspeed/runtime/zero/stage3.py:988-1012` and `deepspeed/runtime/zero/stage3.py:2101-2108`).
+- In other words, the ZeRO job still “uses” `AdamW8bit` in the sense that its step and quantized moment buffers execute, but the weight updates happen on DeepSpeed-managed fp32 replicas instead of the bf16 tensors that the non-ZeRO job updates in-place. That defeats most of the numerical drift introduced by 8‑bit optimizer states while keeping the reduced-memory benefit, so its loss curve matches what you typically see from full-precision AdamW.
+
+## Takeaways
+- The untested-optimizer warning is expected: the optimizer class truly is the torchao 8‑bit variant, and DeepSpeed simply whitelists it at runtime.
+- The loss improvement comes from ZeRO stage 3 upgrading the critical weight update path to fp32 master weights even though the config still says `adamw_torch_8bit`. Without ZeRO, the optimizer manipulates bf16 weights and 8‑bit states directly, which is more brittle on MI300; with ZeRO, the heavy math is performed on the fp32 copies before sharding the results back out, so convergence matches the multi-GPU ZeRO baseline despite identical YAML hyper-parameters.
+
+## Does FSDP2 behave the same way?
+- PyTorch’s FSDP2 exposes the same guarantee via its mixed-precision policy: documentation for `MixedPrecisionPolicy` says “FSDP works well with module-level mixed precision since it keeps the high-precision sharded parameters in memory anyway…The optimizer step uses the sharded parameter in the original dtype” (`torch/distributed/fsdp/_fully_shard/_fsdp_api.py:15-48`).
+- When a module is wrapped with `fully_shard`, FSDP2 records `orig_dtype` for each parameter and only assigns a separate `param_dtype` if mixed precision requests it (`torch/distributed/fsdp/_fully_shard/_fsdp_param.py:408-418`). The optimizer-facing tensor stays in `orig_dtype`, i.e. fp32.
+- Before every forward/backward, FSDP2 all-gathers the shard and optionally casts that temporary buffer to `param_dtype` so compute can happen in bf16/fp16, but those cast tensors are freed after use, and gradients are reduced back into the fp32 shard (`torch/distributed/fsdp/_fully_shard/_fsdp_param.py:739-744`).
+- Therefore, if you keep the wrapped model’s parameters in fp32 and set `MixedPrecisionPolicy(param_dtype=torch.bfloat16, reduce_dtype=torch.float32)`, FSDP2 mirrors ZeRO-3’s behavior: math runs in bf16, but optimizer updates happen on fp32 master weights. The only time you lose the fp32 master copy is if you convert the parameters to bf16 before calling `fully_shard`, so keep the wrap-time dtype in fp32 when you want that numerical cushion.

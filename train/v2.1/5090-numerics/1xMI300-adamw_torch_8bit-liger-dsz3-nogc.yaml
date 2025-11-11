@@ -1,0 +1,116 @@
+# Why the MI300 run still diverges
+# 
+# - The 8×5090 job trains under ZeRO-3 (8x5090-adamw_torch_8bit-liger.yaml:64 loads ../zero3_bf16.json). In Hugging Face this hands
+#   optimizer control to DeepSpeed, so the run actually uses FP32 FusedAdam with ZeRO partitioning instead of bitsandbytes.
+# - The single-MI300 config doesn’t enable ZeRO (1xMI300-adamw_torch_8bit-liger.yaml:80 leaves deepspeed: empty), so it really does
+#   instantiate adamw_torch_8bit. That swap alone changes the optimizer math (quantized moments/state vs FP32 master weights), and on
+#   ROCm the 8-bit kernels are still young. The 0.08 loss gap is exactly what we usually see when comparing bnb-8bit Adam to standard
+#   Adam on these small SFT runs.
+# 
+# What to try before changing batch geometry
+# 
+# 1. Match the optimizer path: either add deepspeed: zero3_bf16.json to the MI300 config so it uses the same ZeRO/FusedAdam stack (works
+#    fine on a single GPU), or change optimizer to adamw_torch/adamw_torch_fused so both runs use FP32 states. After aligning optimizers,
+#    keep the current mbs=64/GAS=1 packing—you’ll still get the throughput boost.
+# 2. If you want to double-check, run a short ablation with micro_batch_size: 8 and gradient_accumulation_steps: 8. That reuses the
+#    default packing params and produces exactly the same gradient flow as the 8×5090 job, so if the loss still differs you know the
+#    culprit isn’t batching.
+# 3. Verify the new MI300 run’s log for sample_packing_eff_est ~0.9–1.0 and total_num_steps ~192; that confirms the packing tweaks are
+#    behaving.
+# 
+#   Next steps
+# 
+#   - Decide which optimizer path you want and launch a fresh MI300 run (remember to clear the old checkpoint dir if you reuse the same
+#     output_dir). If you go with ZeRO, just copy the deepspeed stanza from the 8×5090 YAML.
+#   - Optional: keep a short mbs=8/GAS=8 smoke test around as a regression guard; it’s slower but quickly reveals whether any remaining gap
+#     is due to hardware/backend rather than optimizer math.
+
+base_model: meta-llama/Llama-3.2-1B-Instruct
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+datasets:
+  - path: shisa-ai/shisa-v2-sharegpt
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: from
+      content: value
+    roles:
+      system:
+        - system
+      assistant:
+        - assistant
+        - gpt
+        - model
+      user:
+        - user
+        - human
+    roles_to_train: ["assistant"]
+
+dataset_prepared_path: data
+val_set_size: 0
+output_dir: /data/outputs/1xMI300-adamw_torch_8bit-liger
+
+sequence_len: 8192
+sample_packing: true
+# With micro_batch_size 64, each packed bin must cover up to 64x8192 tokens.
+# Increasing bin/group size lets the sampler fill bins efficiently again so
+# total_num_steps drops back near the 8x5090 run (~192) instead of 908.
+sample_packing_bin_size: 1200
+sample_packing_group_size: 400000
+# If you prefer Axolotl to handle this automatically with slightly more padding,
+# set `multipack_real_batches: true` (commented out to keep current behavior).
+# multipack_real_batches: true
+# Packing efficiency comes through the sampler logs (prev run measured 0.22).
+# After increasing bin/group size, expect efficiency ≈0.9–1.0 so the scheduler
+# computes the same step count as the 8x5090 baseline.
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: 5090-numerics
+wandb_name: 1xMI300-adamw_torch_8bit-liger-dsz3-nogc
+
+# GBS 64 = 8 GPU x 8 MBS x 1 GAS
+gradient_accumulation_steps: 8
+micro_batch_size: 8
+num_epochs: 1
+optimizer: adamw_torch_8bit
+lr_scheduler: cosine
+learning_rate: 2.83e-05
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: false
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+saves_per_epoch: 1
+save_total_limit: 3
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
+  pad_token: <|end_of_text|>
