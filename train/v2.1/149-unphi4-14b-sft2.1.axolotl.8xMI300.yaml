@@ -1,0 +1,94 @@
+# 1 EPOCH - 0.5 LR
+# LR=3.78e-6 @ GBS=128
+
+### Sanity Check
+# ablation-179-finalsft2-shisa-v2-unphi-4-14b https://wandb.ai/augmxnt/shisa-v2/runs/bi73h0ig/overview
+# 7.5e-6 (close to our lr-calculator) at NODE=4 x GPU=8 x MBS=4 x GA=1 => GBS=128
+# 1526 steps @ 3 EPOCH (508 steps/epoch)
+# train/loss from 0.7419 -> 0.44072
+# 3.7h * 32GPU = 118 H100 hours ; ~340K samples
+# 1521 train/global_step
+# 78.031 samples/s
+
+### Our Run:
+# https://wandb.ai/augmxnt/chotto/runs/xupa4tug
+# 551361 samples -> 776 steps/epoch, looks about right to me
+# 156 GB VRAM ; 49h
+
+base_model: unsloth/phi-4
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+datasets:
+  ### For config debugging
+  - path: sft.shisa-v2.1.jsonl
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - assistant
+        - gpt
+        - model
+      user:
+        - user
+        - human
+    roles_to_train: ["assistant"]
+
+dataset_prepared_path: data/149
+val_set_size: 0
+output_dir: /data/outputs/149-unphi4-14b-sft2.1
+
+sequence_len: 8192
+sample_packing: true
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 149-unphi4-14b-sft2.1
+
+# GBS=128 / 8 GPU / MBS=16 => GAS=1
+gradient_accumulation_steps: 1
+micro_batch_size: 16
+num_epochs: 3
+# optimizer: paged_adamw_8bit
+optimizer: adamw_torch_8bit
+lr_scheduler: cosine
+learning_rate: 7.56e-6
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+saves_per_epoch: 1
+save_total_limit: 3
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+special_tokens:

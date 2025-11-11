@@ -1,0 +1,64 @@
+# 120 - original
+# 129-136 sweep
+base_model: LiquidAI/LFM2-1.2B
+
+chunked_cross_entropy: true
+
+eot_tokens:
+  - "<|im_end|>"
+datasets:
+  - path: ./sft.shisa-v2.1.jsonl
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - assistant
+        - gpt
+        - model
+      user:
+        - user
+        - human
+    roles_to_train: ["assistant"]
+dataset_prepared_path: data/129
+output_dir: 134-lfm2-1.2b-v2.1-sft-6.4e-5
+
+sequence_len: 8192
+sample_packing: true
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2
+wandb_name: 134-lfm2-1.2b-v2.1-sft-6.4e-5
+
+# GBS = 128 / 8 GPU / 32 MBS / 4 GAS
+gradient_accumulation_steps: 1
+micro_batch_size: 16
+num_epochs: 3
+optimizer: adamw_torch_4bit
+lr_scheduler: cosine
+learning_rate: 6.4e-5
+
+train_on_inputs: false
+group_by_length: false
+bf16: true
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+saves_per_epoch: 1
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4

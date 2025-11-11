@@ -1,0 +1,73 @@
+# Axolotl DPO configuration for Unphi4 14B on 8x RTX 5090 using shisa-v2.1 preference data
+# LR target: 1.5e-07 @ GBS=64 (micro_batch_size=2, grad_accum=4, devices=8)
+
+base_model: /data/outputs/149-unphi4-14b-sft2.1
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+rl: dpo
+datasets:
+  - path: dpo.shisa-v2.1.jsonl
+    split: train
+    field_chosen: chosen
+    field_rejected: rejected
+
+skip_prepare_dataset: true
+dataset_prepared_path: cached_formatted_dataset/152
+val_set_size: 0
+output_dir: 152-unphi4-14b-dpo2.1-1.5e7
+
+sequence_len: 4096
+sample_packing: false
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+rl_beta: 0.1
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 152-unphi4-14b-dpo2.1-1.5e7
+
+gradient_accumulation_steps: 1
+micro_batch_size: 8
+num_epochs: 1
+optimizer: adamw_torch_8bit
+lr_scheduler: constant_with_warmup
+learning_rate: 1.5e-07
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+evals_per_epoch: 0
+saves_per_epoch: 0
+save_total_limit: 1
+
+precompute_ref_log_probs: false
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:

@@ -1,0 +1,66 @@
+# Axolotl DPO configuration for LFM2 1.2B on 8x MI300X applying shisa-v2.1 preference data
+
+base_model: ./133-lfm2-1.2b-v2.1-sft-5e-5
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+chat_template: tokenizer_default
+rl: dpo
+datasets:
+  - path: ./dpo.shisa-v2.1.jsonl
+    split: train
+    field_chosen: chosen
+    field_rejected: rejected
+
+skip_prepare_dataset: true
+dataset_prepared_path: cached_formatted_dataset/145-lfm2-1.2b-v2.1-dpo-1.2e-6
+val_set_size: 0
+output_dir: 145-lfm2-1.2b-v2.1-dpo-1.2e-6
+
+sequence_len: 2048
+sample_packing: false
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+rl_beta: 0.1
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 145-lfm2-1.2b-v2.1-dpo-1.2e-6
+
+# GBS = 64 / 8 GPU / 8 MBS / 1 GAS
+gradient_accumulation_steps: 1
+micro_batch_size: 8
+num_epochs: 1
+optimizer: adamw_torch_8bit
+lr_scheduler: constant_with_warmup
+learning_rate: 1.2e-6
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+evals_per_epoch: 0
+saves_per_epoch: 0
+save_total_limit: 1
+
+precompute_ref_log_probs: false
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
