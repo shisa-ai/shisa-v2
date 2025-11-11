@@ -1,0 +1,78 @@
+base_model: meta-llama/Llama-3.2-1B-Instruct
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+datasets:
+  - path: shisa-ai/shisa-v2-sharegpt
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: from
+      content: value
+    roles:
+      system:
+        - system
+      assistant:
+        - assistant
+        - gpt
+        - model
+      user:
+        - user
+        - human
+    roles_to_train: ["assistant"]
+
+dataset_prepared_path: data
+val_set_size: 0
+output_dir: /data/outputs/8x5090-adamw_torch-liger
+
+sequence_len: 8192
+sample_packing: true
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: 5090-numerics
+wandb_name: 8x5090-adamw_torch-liger
+
+# GBS 64 = 8 GPU x 8 MBS x 1 GAS
+gradient_accumulation_steps: 1
+micro_batch_size: 8
+num_epochs: 1
+optimizer: adamw_torch
+lr_scheduler: cosine
+learning_rate: 2.83e-05
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+saves_per_epoch: 1
+save_total_limit: 3
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
+  pad_token: <|end_of_text|>
