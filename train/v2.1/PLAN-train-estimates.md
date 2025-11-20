@@ -187,7 +187,7 @@ These runs cover the exact dense workloads we care about: ~7.9×10^8 tokens for 
 |-------|------------|-----------|--------------|---------------|--------------|
 | Llama‑3.2‑3B (run 157) | 3.2 | 8 900 (measured) | 71 k | 7.86×10^8 | 3:04 |
 | Phi‑4 14B (run 149) | 14 | 2 300 (measured) | 18.4 k | 9.78×10^8 | 14:46 |
-| **Llama‑3.3‑70B (SFT)** | 70 | **430–530 (est.)** | 3.4–4.2 k | 7.86×10^8 | **52–64 h** |
+| **Llama‑3.3‑70B (SFT) 168** | 70 | 540 (in-progress) | 4.3k | 7.86×10^8 | **60 h** |
 | **Llama‑3.3‑70B (DPO)** | 70 | same as SFT | 3.4–4.2 k | 4.6×10^8 (avg of runs 158/149) | **31–37 h** |
 
 Assumptions:
