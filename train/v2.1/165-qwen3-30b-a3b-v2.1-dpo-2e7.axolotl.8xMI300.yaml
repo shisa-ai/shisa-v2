@@ -36,7 +36,7 @@ val_set_size: 0
 output_dir: /data/outputs/165-qwen3-30b-a3b-v2.1-dpo-2e7
 
 
-sequence_len: 4096
+sequence_len: 2048
 sample_packing: false
 flash_attention: true
 pad_to_sequence_len: true
