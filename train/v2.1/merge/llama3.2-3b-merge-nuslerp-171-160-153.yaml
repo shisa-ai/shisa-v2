@@ -1,0 +1,15 @@
+merge_method: nuslerp
+dtype: bfloat16
+base_model: shisa-ai/153-llama3.2-3b-v2.1-sft
+models:
+  # fixed-ct
+  - model: shisa-ai/171-llama3.2-3b-v2.1-153sft-dpo-2e7
+    parameters:
+      weight: 0.5
+  # OpenRLHF
+  - model: shisa-ai/160-llama3.2-3b-v2.1-153sft-dpo-4e7
+    parameters:
+      weight: 0.5
+parameters:
+  nuslerp_flatten: true
+  nuslerp_row_wise: false
