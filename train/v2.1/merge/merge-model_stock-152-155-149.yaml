@@ -1,0 +1,8 @@
+merge_method: model_stock
+dtype: bfloat16
+base_model: shisa-ai/149-unphi4-14b-sft2.1
+models:
+  - model: shisa-ai/155-unphi4-14b-dpo2.1-2e7
+  - model: shisa-ai/152-unphi4-14b-dpo2.1-1.5e7
+parameters:
+  filter_wise: false

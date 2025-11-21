@@ -1,0 +1,15 @@
+merge_method: nuslerp
+dtype: bfloat16
+base_model: shisa-ai/133-lfm2-1.2b-v2.1-sft-5e-5
+models:
+  # fixed-ct - elyza, ja mt-bench
+  - model: shisa-ai/170-lfm2-1.2b-v2.1-dpo-1.5-7
+    parameters:
+      weight: 0.5
+  # raw - best rakuda, tengu, good kiseki perfect, en->ja
+  - model: shisa-ai/144-lfm2-1.2b-v2.1-dpo-1e-6
+    parameters:
+      weight: 0.5
+parameters:
+  nuslerp_flatten: true
+  nuslerp_row_wise: false

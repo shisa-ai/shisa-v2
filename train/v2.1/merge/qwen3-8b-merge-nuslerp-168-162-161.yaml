@@ -1,0 +1,15 @@
+merge_method: nuslerp
+dtype: bfloat16
+base_model: shisa-ai/161-qwen3-8b-v2.1-sft
+models:
+  # 1.2e-7
+  - model: /data/outputs/168-qwen3-8b-v2.1-dpo-1.2e7
+    parameters:
+      weight: 0.5
+  # 2.5e-7
+  - model: shisa-ai/162-qwen3-8b-v2.1-dpo
+    parameters:
+      weight: 0.5
+parameters:
+  nuslerp_flatten: true
+  nuslerp_row_wise: false

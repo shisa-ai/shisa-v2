@@ -1,0 +1,13 @@
+merge_method: nuslerp
+dtype: bfloat16
+base_model: shisa-ai/149-unphi4-14b-sft2.1
+models:
+  - model: shisa-ai/155-unphi4-14b-dpo2.1-2e7
+    parameters:
+      weight: 0.5
+  - model: shisa-ai/152-unphi4-14b-dpo2.1-1.5e7
+    parameters:
+      weight: 0.5
+parameters:
+  nuslerp_flatten: true
+  nuslerp_row_wise: false

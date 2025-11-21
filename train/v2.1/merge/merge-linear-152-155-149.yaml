@@ -1,0 +1,12 @@
+merge_method: linear
+dtype: bfloat16
+models:
+  - model: shisa-ai/155-unphi4-14b-dpo2.1-2e7
+    parameters:
+      weight: 0.35
+  - model: shisa-ai/152-unphi4-14b-dpo2.1-1.5e7
+    parameters:
+      weight: 0.35
+  - model: shisa-ai/149-unphi4-14b-sft2.1
+    parameters:
+      weight: 0.30
