@@ -36,9 +36,11 @@ datasets:
         - human
     roles_to_train: ["assistant"]
 
-dataset_prepared_path: data/168
+# Our set is already shuffled - let's try this for merging...
+shuffle_merged_datasets: False
+dataset_prepared_path: data/169
 val_set_size: 0
-output_dir: /data/outputs/168-llama3.3-70b-v2.1-sft-6.6e6
+output_dir: /data/outputs/169-llama3.3-70b-v2.1-sft-6.6e6
 
 sequence_len: 8192
 sample_packing: true
@@ -50,7 +52,7 @@ neftune_noise_alpha: 5
 use_wandb: true
 wandb_entity: augmxnt
 wandb_project: shisa-v2.1
-wandb_name: 168-llama3.3-70b-v2.1-sft-6.6e6
+wandb_name: 169-llama3.3-70b-v2.1-sft-6.6e6
 
 # GBS 128 = 8 GPU x 16 MBS x 1 GAS
 gradient_accumulation_steps: 4
