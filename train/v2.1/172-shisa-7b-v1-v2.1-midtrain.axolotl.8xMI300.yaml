@@ -53,7 +53,7 @@ wandb_project: shisa-v2.1
 wandb_name: 172-shisa-v1-7b-v2.1-midtrain
 
 # GBS 128 = 8 GPU x 16 MBS x 1 GAS
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 1
 micro_batch_size: 16
 num_epochs: 3
 optimizer: adamw_torch_8bit
