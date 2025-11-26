@@ -48,10 +48,10 @@ neftune_noise_alpha: 5
 use_wandb: true
 wandb_entity: augmxnt
 wandb_project: shisa-v2.1
-wandb_name: 179-llama3.1-8b-v2.1-sft
+wandb_name: 179-llama3.1-8b-v2.1-sft 8xMI300
 
 # 8 GPU x MBS 16 x GAS 1 = GBS 128
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 1
 micro_batch_size: 16
 num_epochs: 3
 optimizer: adamw_torch_8bit
