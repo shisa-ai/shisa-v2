@@ -93,6 +93,9 @@ if __name__ == "__main__":
     llama3_8b_params = 8e9  # 8 billion parameters
     sft_lr = 1e-5     # From 022-llama3.1-8b-v2new.openrlhf.sh
     dpo_lr = 1.25e-7  # From 024-llama3.1-8b-v2new-dpo405b.openrlhf.sh
+
+    # v2.1 181-184 Llama 3.1 8B on DPO v2.1o w/ Axolotl
+    dpo_lr = 7e-8  # From 183-llama3.1-8b-v2.1o-dpo-7e8.axolotl.8xMI300.yaml
     
     # Get model sizes and calculate learning rates
     target_sizes = get_common_sizes()
