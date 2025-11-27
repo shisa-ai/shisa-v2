@@ -1,0 +1,77 @@
+# Axolotl DPO configuration for Qwen3 8B on 8x MI300X applying shisa-v2.1 preference data
+
+# Note we've manually set thinking to default off in our 161 tokenizer but we add the enable_thinking: false kwarg for consistency
+base_model: /data/outputs/179-llama3.1-8b-v2.1-sft
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+chat_template_kwargs:
+  enable_thinking: false
+rl: dpo
+datasets:
+  - path: dpo.shisa-v2.1o.jsonl
+    split: train
+    type: chat_template.argilla_chat
+    field_chosen: chosen
+    field_rejected: rejected
+
+skip_prepare_dataset: true
+dataset_prepared_path: data/181
+val_set_size: 0
+output_dir: /data/outputs/183-llama3.1-8b-v2.1o-dpo-7e8
+
+sequence_len: 4096
+sample_packing: false
+sample_packing_bin_size: 4000
+flash_attention: true
+pad_to_sequence_len: false
+
+neftune_noise_alpha: 5
+
+rl_beta: 0.1
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 183-llama3.1-8b-v2.1o-dpo-7e8
+
+gradient_accumulation_steps: 1
+micro_batch_size: 8
+num_epochs: 1
+optimizer: adamw_torch_8bit
+lr_scheduler: constant_with_warmup
+learning_rate: 7e-08
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+evals_per_epoch: 0
+saves_per_epoch: 0
+save_total_limit: 1
+
+precompute_ref_log_probs: false
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
