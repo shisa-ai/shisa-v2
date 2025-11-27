@@ -70,7 +70,7 @@ warmup_ratio: 0.03
 saves_per_epoch: 1
 save_total_limit: 3
 
-deepspeed: zero3_bf16.json
+deepspeed: zero2.json
 weight_decay: 1e-4
 fsdp:
 fsdp_config:
