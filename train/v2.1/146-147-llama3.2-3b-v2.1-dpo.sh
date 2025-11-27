@@ -15,11 +15,11 @@ ORIG_MODEL=${ORIG_MODEL:-"meta-llama/Llama-3.2-3B-Instruct"}
 SFT_CKPT=${SFT_CKPT:-"146-llama3.2-3b-v2.1-sft"}
 SFT_DATA="sft.shisa-v2.1.jsonl"
 SFT_LR=${SFT_LR:-1.6e-5}
-SFT_MBS=4
+SFT_MBS=2
 
 DPO_DATA="dpo.shisa-v2.1.jsonl"
 DPO_LR=${DPO_LR:-2.0e-7}
-DPO_MBS=4
+DPO_MBS=2
 
 
 # SFT
