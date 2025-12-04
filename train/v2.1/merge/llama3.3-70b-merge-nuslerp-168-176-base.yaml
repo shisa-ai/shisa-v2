@@ -1,0 +1,15 @@
+merge_method: nuslerp
+dtype: bfloat16
+base_model: meta-llama/Llama-3.3-70B-Instruct
+models:
+  # sft
+  - model: shisa-ai/168-llama3.3-70b-v2.1-sft
+    parameters:
+      weight: 0.5
+  # dpo
+  - model: /data/outputs/176-llama3.3-70b-v2.1-dpo-6e8
+    parameters:
+      weight: 0.5
+parameters:
+  nuslerp_flatten: true
+  nuslerp_row_wise: false
