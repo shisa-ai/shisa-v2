@@ -1,0 +1,85 @@
+# Axolotl SFT configuration for Llama 3.2 3B on 8x MI300X
+# Compare to 153 (same w/ OpenRLHF)
+
+base_model: mistralai/Ministral-3-3B-Instruct-2512-BF16
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+# Text-only training: freeze vision_tower and multi_modal_projector
+unfrozen_parameters:
+  - model.language_model.+
+  - language_model.+
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+datasets:
+  - path: sft.shisa-v2.1.jsonl
+    type: chat_template
+    field_messages: conversations
+    message_property_mappings:
+      role: role
+      content: content
+    roles:
+      system:
+        - system
+      assistant:
+        - assistant
+        - gpt
+        - model
+      user:
+        - user
+        - human
+    roles_to_train: ["assistant"]
+
+dataset_prepared_path: data/196
+val_set_size: 0
+output_dir: /data/outputs/196-ministral3-3b-v2.1-sft
+
+sequence_len: 8192
+sample_packing: true
+flash_attention: true
+pad_to_sequence_len: true
+
+neftune_noise_alpha: 5
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 196-ministral3-3b-v2.1-sft
+
+# 8 GPU x MBS 16 x GAS 1 = GBS 128
+gradient_accumulation_steps: 2
+micro_batch_size: 8
+num_epochs: 3
+optimizer: adamw_torch_8bit
+lr_scheduler: cosine
+learning_rate: 1.63e-05
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+saves_per_epoch: 1
+save_total_limit: 3
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:

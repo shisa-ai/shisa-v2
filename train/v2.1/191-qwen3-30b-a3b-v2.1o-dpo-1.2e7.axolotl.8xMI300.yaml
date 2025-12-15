@@ -1,0 +1,84 @@
+# Axolotl SFT configuration for Qwen3 30B-A3B on 1x MI300X
+# Qwen3-30B-A3B-Instruct-2507: 30B params with hybrid attention (H2O)
+# Based on 106-ring-mini-2.0 config structure with Qwen3 model and LR from 095
+base_model: /data/outputs/163-qwen3-30b-a3b-v2.1-sft-megablocks
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+# mlp_impl: megablocks
+# use_grouped_moe_kernels: true
+
+model_config:
+  output_router_logits: true
+  router_aux_loss_coef: 0.001
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+rl: dpo
+datasets:
+  - path: dpo.shisa-v2.1o.jsonl
+    split: train
+    type: chat_template.argilla_chat
+    field_chosen: chosen
+    field_rejected: rejected
+
+skip_prepare_dataset: false
+dataset_prepared_path: data/191
+val_set_size: 0
+output_dir: /data/outputs/191-qwen3-30b-a3b-v2.1o-dpo-1.2e7
+
+
+sequence_len: 2048
+sample_packing: false
+flash_attention: true
+pad_to_sequence_len: false
+
+neftune_noise_alpha: 5
+
+rl_beta: 0.1
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 191-qwen3-30b-a3b-v2.1o-dpo-1.2e7
+
+# Single MI300X configuration
+# Using 095's learning rate (1.63e-05) for Qwen3 model
+# GBS 128 = 1 GPU x 4 MBS x 32 GAS
+gradient_accumulation_steps: 1
+micro_batch_size: 8
+num_epochs: 1
+optimizer: adamw_torch_8bit
+lr_scheduler: constant_with_warmup
+learning_rate: 1.2e-7
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+saves_per_epoch: 1
+save_total_limit: 3
+
+precompute_ref_log_probs: false
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
