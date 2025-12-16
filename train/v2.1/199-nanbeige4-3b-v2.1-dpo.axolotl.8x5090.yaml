@@ -1,0 +1,81 @@
+# Axolotl DPO configuration for Unphi4 14B on 8x RTX 5090 using shisa-v2.1 preference data
+# LR target: 9.45e-08 @ GBS=64 (micro_batch_size=2, grad_accum=4, devices=8)
+# dsz3 mbs=8 gas=8 gc=true - 10h - 80GB
+# dsz3 mbs=4 gas=4 gc=false: 2044 steps , 20.6 it/s , 11h30m , 180GB
+# dsz3 mbs=4 gas=4 gc=false pad=false: 2044 steps , 20.7 it/s , 11h30m , 170GB
+# dsz3 seq=2048 mbs=8 gas=8 gc=true pad=false: 2044 steps, 18.3 it/s, 
+
+# OpenRLHF SFT
+base_model: /data/outputs/198-nanbeige4-3b-v2.1-sft
+
+load_in_8bit: false
+load_in_4bit: false
+strict: false
+
+plugins:
+  - axolotl.integrations.liger.LigerPlugin
+liger_rope: true
+liger_rms_norm: true
+liger_glu_activation: true
+liger_fused_linear_cross_entropy: true
+
+chat_template: tokenizer_default
+rl: dpo
+datasets:
+  - path: dpo.shisa-v2.1.jsonl
+    split: train
+    type: chat_template.argilla_chat
+    field_chosen: chosen
+    field_rejected: rejected
+
+skip_prepare_dataset: true
+dataset_prepared_path: cached_formatted_dataset/199
+val_set_size: 0
+output_dir: /data/outputs/199-nanbeige4-3b-v2.1-dpo
+
+sequence_len: 2048
+sample_packing: false
+flash_attention: true
+pad_to_sequence_len: false
+
+neftune_noise_alpha: 5
+
+rl_beta: 0.1
+
+use_wandb: true
+wandb_entity: augmxnt
+wandb_project: shisa-v2.1
+wandb_name: 199-nanbeige4-3b-v2.1-dpo
+
+gradient_accumulation_steps: 2
+micro_batch_size: 4
+num_epochs: 1
+optimizer: adamw_torch_8bit
+lr_scheduler: constant_with_warmup
+# Double v2 lr-calculator
+learning_rate: 2.0e-07
+
+train_on_inputs: false
+group_by_length: false
+bf16: auto
+fp16:
+tf32: false
+
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+logging_steps: 1
+
+warmup_ratio: 0.03
+evals_per_epoch: 0
+saves_per_epoch: 0
+save_total_limit: 1
+
+precompute_ref_log_probs: false
+
+deepspeed: zero3_bf16.json
+weight_decay: 1e-4
+fsdp:
+fsdp_config:
+special_tokens:
+  pad_token: "</s>"                # Nanbeige has no pad; reuse EOS
